@@ -1,66 +1,92 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../../app/routes/app_pages.dart';
-import '../../../widgets/theme_constants.dart';
+import '../../../routes/app_pages.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/profile_service.dart';
 
 class ProfileController extends GetxController {
-  // Data profil pengguna — nanti ambil dari Supabase
-  final userName = 'Budi Santoso'.obs;
-  final userEmail = 'budi@example.com'.obs;
-  final userInitial = 'B'.obs;
-  final userRole = 'Traveler'.obs;
+  // ── State profil ─────────────────────────────────────────────
+  final isLoadingProfile = true.obs;
+  final profile = Rxn<ProfileData>();
 
-  void goToSimpan() {
-    // Get.toNamed: bisa back ke Profile
-    Get.toNamed(Routes.SIMPAN);
+  // ── State activity counts ────────────────────────────────────
+  final isLoadingCounts = true.obs;
+  final counts = const ActivityCount.empty().obs;
+
+  final _service = ProfileService();
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Listen perubahan login state — jika user login/logout,
+    // langsung refresh data tanpa perlu reload seluruh halaman
+    ever(AuthService.to.isLoggedIn, (_) => _onAuthChanged());
+    _onAuthChanged();
   }
 
-  void goToHistory() {
-    // Get.toNamed: bisa back ke Profile
-    Get.toNamed(Routes.HISTORY);
+  // ── INTERNAL ─────────────────────────────────────────────────
+
+  void _onAuthChanged() {
+    if (AuthService.to.isLoggedIn.value) {
+      _fetchAll();
+    } else {
+      // Reset semua state saat logout
+      profile.value = null;
+      counts.value = const ActivityCount.empty();
+      isLoadingProfile.value = false;
+      isLoadingCounts.value = false;
+    }
   }
 
-  void goToAbout() {
-    // Get.toNamed: bisa back ke Profile
-    Get.toNamed(Routes.ABOUT);
+  Future<void> _fetchAll() async {
+    // Profil & counts diload paralel
+    await Future.wait([
+      _fetchProfile(),
+      _fetchCounts(),
+    ]);
   }
 
-  void showComingSoon(String feature) {
-    Get.snackbar(
-      'Coming Soon',
-      '$feature akan segera hadir!',
-      backgroundColor: AppColors.primaryColor,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _fetchProfile() async {
+    try {
+      isLoadingProfile.value = true;
+      final data = await _service.fetchProfile(AuthService.to.userId);
+      profile.value = data;
+    } catch (_) {
+      // Profil gagal dimuat — UI tetap tampil dengan data kosong
+    } finally {
+      isLoadingProfile.value = false;
+    }
   }
 
-  void showLogoutDialog() {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: AppColors.cardColor,
-        title: const Text('Konfirmasi Keluar',
-            style: TextStyle(color: Colors.white)),
-        content: const Text('Apakah Anda yakin ingin keluar?',
-            style: TextStyle(color: AppColors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Batal',
-                style: TextStyle(color: AppColors.white70)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
-            onPressed: () {
-              Get.back(); // tutup dialog
-              // Hapus seluruh stack → Login jadi satu-satunya halaman
-              Get.offAllNamed(Routes.LOGIN);
-            },
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _fetchCounts() async {
+    try {
+      isLoadingCounts.value = true;
+      final data =
+          await _service.fetchActivityCounts(AuthService.to.userId);
+      counts.value = data;
+    } catch (_) {
+      counts.value = const ActivityCount.empty();
+    } finally {
+      isLoadingCounts.value = false;
+    }
+  }
+
+  // ── AKSI ─────────────────────────────────────────────────────
+
+  /// Refresh manual (pull-to-refresh)
+  Future<void> refresh() => _fetchAll();
+
+  void goToEditProfile() => Get.toNamed(Routes.EDIT_PROFILE);
+
+  void goToSettings() => Get.toNamed(Routes.SETTINGS);
+
+  void goToSavedPlaces() => Get.toNamed(Routes.SIMPAN);
+
+  void goToVisitHistory() => Get.toNamed(Routes.HISTORY);
+
+  void goToMyReviews() => Get.toNamed(Routes.MY_REVIEWS);
+
+  Future<void> signOut() async {
+    await AuthService.to.signOut();
+    // AuthService listener akan redirect ke LOGIN otomatis
   }
 }

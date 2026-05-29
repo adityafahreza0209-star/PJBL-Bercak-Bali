@@ -1,123 +1,239 @@
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../routes/app_pages.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/review_service.dart';
+import '../../../services/wisata_service.dart';
 
 class DetailWisataController extends GetxController {
-  // Data diterima via Get.toNamed arguments
-  late List<String> images;
-  late String title;
-  late String location;
+  // ── State utama ───────────────────────────────────────────────
+  final isLoading = true.obs;
+  final errorMessage = RxnString();
 
+  // ── Data wisata (diisi setelah fetch) ─────────────────────────
+  WisataModel? _wisata;
+
+  String get title => _wisata?.title ?? '';
+  String get location => _wisata?.location ?? '';
+  String get category => _wisata?.category ?? '';
+  String get description => _wisata?.description ?? '';
+  String get ticketPrice => _wisata?.ticketPrice ?? '';
+  String get openHours => _wisata?.openHours ?? '';
+  String get duration => _wisata?.duration ?? '';
+  String get rating => _wisata?.rating.toStringAsFixed(1) ?? '0.0';
+  int get totalUlasan => _wisata?.totalReviews ?? 0;
+  double get latitude => _wisata?.latitude ?? 0.0;
+  double get longitude => _wisata?.longitude ?? 0.0;
+  List<String> get images => _wisata?.images ?? [];
+
+  // ── State carousel gambar ─────────────────────────────────────
   final currentImage = 0.obs;
+
+  // ── State simpan/favorit ──────────────────────────────────────
   final isFavorite = false.obs;
 
-  // Koordinat dummy – siap migrasi ke Supabase
-  final double dummyLat = -8.409518;
-  final double dummyLng = 115.188919;
+  // ── State reviews ─────────────────────────────────────────────
+  final reviews = <ReviewModel>[].obs;
+  final isLoadingReviews = false.obs;
 
-  // Info operasional dummy – siap migrasi ke Supabase
-  final String openHours = '08.00 – 18.00 WITA';
-  final String ticketPrice = 'Rp 30.000 / orang';
-  final String duration = '2 – 3 jam';
-  final String category = 'Pantai • Wisata Alam';
-  final String rating = '4.8';
-  final int totalUlasan = 1245;
+  // ── State tombol "Berguna" per review ─────────────────────────
+  final usefulCounts = <String, int>{}.obs;
+  final userUseful = <String, bool>{}.obs;
 
-  final String description =
-      'Salah satu destinasi ikonik di Bali yang menawarkan pemandangan alam yang memukau. '
-      'Tempat ini selalu ramai dikunjungi wisatawan domestik maupun mancanegara, '
-      'terutama saat pagi dan sore hari ketika cahaya matahari menciptakan panorama yang luar biasa indah.';
-
-  // ========== DATA REVIEWS DENGAN USEFUL COUNT ==========
-  final List<Map<String, dynamic>> reviews = [
-    {
-      'name': 'Wily',
-      'userId': 'user_wily',
-      'rating': 5,
-      'date': 'Jan 2025',
-      'comment': 'Tempatnya sangat indah dan bersih. Wajib dikunjungi!',
-      'usefulCount': 24,
-    },
-    {
-      'name': 'Yuri',
-      'userId': 'user_yuri',
-      'rating': 4,
-      'date': 'Des 2024',
-      'comment': 'Bagus dan nyaman, tapi cukup ramai saat akhir pekan.',
-      'usefulCount': 7,
-    },
-    {
-      'name': 'Akbar',
-      'userId': 'user_akbar',
-      'rating': 5,
-      'date': 'Feb 2026',
-      'comment': 'Pengalaman yang sangat seru, terutama saat pagi hari. Pemandangan matahari terbitnya luar biasa!',
-      'usefulCount': 19,
-    },
-  ];
-
-  // ========== STATE UNTUK TOMBOL BERGUNA ==========
-  final usefulCounts = <int, int>{}.obs;  // index -> jumlah useful
-  final userUseful = <int, bool>{}.obs;   // index -> apakah user sudah klik
+  final _wisataService = WisataService();
+  final _reviewService = ReviewService();
+  String _wisataId = '';
 
   @override
   void onInit() {
     super.onInit();
-    
-    // Ambil arguments dari navigasi
     final args = Get.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      images = (args['detailImages'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          ['assets/images/kelingking.jpg'];
-      title = args['title'] ?? '';
-      location = args['location'] ?? '';
-    } else {
-      images = ['assets/images/kelingking.jpg'];
-      title = '';
-      location = '';
+    _wisataId = args?['wisataId'] as String? ?? '';
+
+    if (_wisataId.isEmpty) {
+      errorMessage.value = 'ID wisata tidak valid.';
+      isLoading.value = false;
+      return;
     }
-    
-    // Inisialisasi useful counts dari data reviews
-    for (int i = 0; i < reviews.length; i++) {
-      usefulCounts[i] = reviews[i]['usefulCount'] ?? 0;
-      userUseful[i] = false;
+
+    _fetchAll();
+  }
+
+  // ── FETCH ─────────────────────────────────────────────────────
+
+  Future<void> _fetchAll() async {
+    await Future.wait([
+      _fetchWisataDetail(),
+      _fetchReviews(),
+    ]);
+  }
+
+  Future<void> _fetchWisataDetail() async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = null;
+
+      final data = await _wisataService.fetchWisataById(_wisataId);
+      if (data == null) {
+        errorMessage.value = 'Wisata tidak ditemukan.';
+        return;
+      }
+
+      _wisata = data;
+
+      final userId = AuthService.to.userId;
+      if (userId.isNotEmpty) {
+        isFavorite.value = await _wisataService.isSaved(
+          wisataId: _wisataId,
+          userId: userId,
+        );
+        await _wisataService.recordVisit(
+          wisataId: _wisataId,
+          userId: userId,
+        );
+      }
+    } catch (_) {
+      errorMessage.value = 'Gagal memuat data wisata. Coba lagi.';
+    } finally {
+      isLoading.value = false;
     }
   }
+
+  Future<void> _fetchReviews() async {
+    if (_wisataId.isEmpty) return;
+    try {
+      isLoadingReviews.value = true;
+
+      final data = await _reviewService.fetchWisataReviews(_wisataId);
+      reviews.assignAll(data);
+
+      // Inisialisasi state berguna dari data Supabase
+      for (final r in data) {
+        usefulCounts[r.id] = r.usefulCount;
+        userUseful[r.id] = false;
+      }
+
+      // Tandai review yang sudah di-vote user ini
+      final userId = AuthService.to.userId;
+      if (userId.isNotEmpty) {
+        final votedIds = await _reviewService.fetchUserVotes(userId);
+        for (final id in votedIds) {
+          if (userUseful.containsKey(id)) {
+            userUseful[id] = true;
+          }
+        }
+      }
+    } catch (_) {
+      // Gagal load review tidak fatal
+    } finally {
+      isLoadingReviews.value = false;
+    }
+  }
+
+  // Dipanggil setelah submit review berhasil
+  Future<void> refresh() => _fetchAll();
+
+  // ── AKSI TERPROTEKSI (perlu login) ────────────────────────────
+
+  Future<void> toggleFavorite() async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menyimpan wisata.');
+      return;
+    }
+
+    final userId = AuthService.to.userId;
+    final nowFavorite = isFavorite.value;
+
+    isFavorite.value = !nowFavorite; // optimistic update
+
+    try {
+      if (nowFavorite) {
+        await _wisataService.unsavePlace(wisataId: _wisataId, userId: userId);
+      } else {
+        await _wisataService.savePlace(wisataId: _wisataId, userId: userId);
+      }
+    } catch (_) {
+      isFavorite.value = nowFavorite; // rollback
+      Get.snackbar('Gagal', 'Tidak bisa menyimpan wisata. Coba lagi.');
+    }
+  }
+
+  Future<void> toggleUseful(String reviewId) async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menandai ulasan berguna.');
+      return;
+    }
+
+    final userId = AuthService.to.userId;
+    final alreadyVoted = userUseful[reviewId] ?? false;
+    final currentCount = usefulCounts[reviewId] ?? 0;
+
+    // Optimistic update
+    userUseful[reviewId] = !alreadyVoted;
+    usefulCounts[reviewId] = alreadyVoted ? currentCount - 1 : currentCount + 1;
+
+    try {
+      if (alreadyVoted) {
+        await _reviewService.removeVote(reviewId: reviewId, userId: userId);
+      } else {
+        await _reviewService.addVote(reviewId: reviewId, userId: userId);
+      }
+    } catch (_) {
+      // Rollback
+      userUseful[reviewId] = alreadyVoted;
+      usefulCounts[reviewId] = currentCount;
+      Get.snackbar('Gagal', 'Tidak bisa memproses vote. Coba lagi.');
+    }
+  }
+
+  Future<void> goToWriteReview() async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menulis ulasan.');
+      return;
+    }
+
+    // result: true → review berhasil dikirim, refresh untuk tampilkan ulasan baru
+    final result = await Get.toNamed(
+      Routes.WRITE_REVIEW,
+      arguments: {
+        'wisataId': _wisataId,
+        'placeName': title,
+        'placeType': 'wisata',
+      },
+    );
+
+    if (result == true) await refresh();
+  }
+
+  // ── AKSI BEBAS (tidak perlu login) ────────────────────────────
 
   void onPageChanged(int index) => currentImage.value = index;
-  void toggleFavorite() => isFavorite.value = !isFavorite.value;
 
-  // ========== FUNGSI TOMBOL BERGUNA ==========
-  void toggleUseful(int index) {
-    if (userUseful[index] == true) {
-      // Jika sudah klik, kurangi
-      usefulCounts[index] = (usefulCounts[index] ?? 0) - 1;
-      userUseful[index] = false;
-    } else {
-      // Jika belum klik, tambah
-      usefulCounts[index] = (usefulCounts[index] ?? 0) + 1;
-      userUseful[index] = true;
+  Future<void> openGoogleMaps() async {
+    final lat = latitude;
+    final lng = longitude;
+
+    if (lat == 0.0 && lng == 0.0) {
+      Get.snackbar('Info', 'Koordinat lokasi belum tersedia.');
+      return;
     }
-    // Nanti panggil API untuk update ke Supabase
-  }
 
-  Future<void> openGoogleMaps(double lat, double lng) async {
-    final Uri url =
-        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Tidak bisa membuka Google Maps';
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Tidak bisa membuka Google Maps: $e');
+    } catch (_) {
+      Get.snackbar('Error', 'Tidak bisa membuka Google Maps.');
     }
   }
 
   Future<void> sharePlace() async =>
-      Get.snackbar('Bagikan', 'Fitur bagikan segera hadir');
+      Get.snackbar('Bagikan', 'Fitur bagikan segera hadir.');
 
   void goBack() => Get.back();
 }

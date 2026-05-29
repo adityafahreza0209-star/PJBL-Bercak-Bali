@@ -1,182 +1,112 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_pages.dart';
+import '../../../services/restaurant_service.dart';
+import '../../../services/wisata_service.dart';
 
 class HomeController extends GetxController {
   final searchController = TextEditingController();
   final isSearching = false.obs;
 
-  // ============================================================
-  // DATA KOTA
-  // ============================================================
-  final List<Map<String, dynamic>> cities = const [
-    {
-      'cityName': 'Ubud',
-      'region': 'Gianyar',
-      'image': 'assets/images/tegalalang.jpg',
-      'description':
-          'Ubud adalah pusat seni dan budaya Bali, dikelilingi sawah terasering dan hutan tropis. Dikenal sebagai destinasi yoga dan wellness dunia.',
-    },
-    {
-      'cityName': 'Denpasar',
-      'region': 'Denpasar',
-      'image': 'assets/images/denpasar.jpg',
-      'description':
-          'Denpasar adalah ibu kota Bali yang modern namun kaya tradisi. Pusat perdagangan, kuliner, dan seni budaya Bali yang autentik.',
-    },
-    {
-      'cityName': 'Kuta',
-      'region': 'Badung',
-      'image': 'assets/images/kuta.jpg',
-      'description':
-          'Kuta dikenal dengan pantainya yang ramai, sunset yang memukau, dan kehidupan malam yang semarak. Surga bagi peselancar pemula.',
-    },
-    {
-      'cityName': 'Gianyar',
-      'region': 'Gianyar',
-      'image': 'assets/images/gianyar.jpg',
-      'description':
-          'Gianyar adalah kabupaten seni dengan pengrajin batik, perak, dan ukiran kayu terbaik Bali. Rumah bagi Tegalalang dan pasar seni tradisional.',
-    },
-  ];
+  // ── State restoran ──────────────────────────────────────────
+  final topRestaurants = <RestaurantModel>[].obs;
+  final isLoadingRestoran = false.obs;
+  final errorRestoran = RxnString();
 
-  // ============================================================
-  // DATA TERAKHIR DILIHAT
-  // ============================================================
-  final List<Map<String, dynamic>> recentDestinations = const [
-    {
-      'image': 'assets/images/tegalalang.jpg',
-      'title': 'Tegalalang Rice Terrace',
-      'location': 'Gianyar, Bali',
-      'rating': '4.7',
-      'category': 'Alam • Sawah',
-      'detailImages': [
-        'assets/images/tegalalang.jpg',
-        'assets/images/denpasar.jpg',
-        'assets/images/tanahlot.jpg',
-      ],
-    },
-    {
-      'image': 'assets/images/uluwatu.jpg',
-      'title': 'Pura Uluwatu',
-      'location': 'Badung, Bali',
-      'rating': '4.8',
-      'category': 'Budaya • Pura',
-      'detailImages': [
-        'assets/images/uluwatu.jpg',
-        'assets/images/tanahlot.jpg',
-        'assets/images/kelingking.jpg',
-      ],
-    },
-  ];
+  // ── State kota ──────────────────────────────────────────────
+  final cities = <CityModel>[].obs;
+  final isLoadingCities = false.obs;
+  final errorCities = RxnString();
 
-  // ============================================================
-  // DATA DESTINASI POPULER
-  // ============================================================
-  final List<Map<String, dynamic>> popularDestinations = const [
-    {
-      'image': 'assets/images/kelingking.jpg',
-      'title': 'Pantai Kelingking',
-      'location': 'Nusa Penida',
-      'rating': '4.9',
-      'reviews': '4.2k',
-      'badge': 'TRENDING',
-    },
-    {
-      'image': 'assets/images/tanahlot.jpg',
-      'title': 'Tanah Lot',
-      'location': 'Tabanan',
-      'rating': '4.7',
-      'reviews': '5.8k',
-      'badge': 'POPULER',
-    },
-    {
-      'image': 'assets/images/tegalalang.jpg',
-      'title': 'Campuhan Ridge',
-      'location': 'Ubud',
-      'rating': '4.6',
-      'reviews': '1.9k',
-      'badge': 'HITS',
-    },
-  ];
+  // ── State wisata populer & terakhir dilihat ─────────────────
+  final popularWisata = <WisataModel>[].obs;
+  final recentWisata = <WisataModel>[].obs;
+  final isLoadingWisata = false.obs;
+  final errorWisata = RxnString();
 
-  // ============================================================
-  // DATA RESTORAN TERBAIK
-  // ============================================================
-  final List<Map<String, dynamic>> topRestaurants = const [
-    {
-      'image': 'assets/images/restoran1.jpg',
-      'name': 'Warung Babi Guling Ibu Oka',
-      'cuisine': 'Babi Guling • Bali',
-      'distance': '0.8 km',
-      'rating': '4.8',
-      'priceRange': 'Rp 50-150k',
-      'location': 'Jl. Raya Ubud No. 88, Gianyar, Bali',
-      'description':
-          'Warung Babi Guling Ibu Oka adalah restoran populer di Bali yang menyajikan hidangan khas Indonesia dengan cita rasa autentik.',
-      'detailImages': [
-        'assets/images/restoran1.jpg',
-        'assets/images/restoran2.jpg',
-        'assets/images/restoran3.jpg',
-      ],
-    },
-    {
-      'image': 'assets/images/restoran2.jpg',
-      'name': 'Bebek Bengil Dirty Duck',
-      'cuisine': 'Bebek • Indonesia',
-      'distance': '1.2 km',
-      'rating': '4.7',
-      'priceRange': 'Rp 100-250k',
-      'location': 'Jl. Hanoman, Ubud, Bali',
-      'description':
-          'Bebek Bengil Dirty Duck adalah restoran populer di Bali yang menyajikan hidangan bebek lezat dengan suasana sawah yang khas.',
-      'detailImages': [
-        'assets/images/restoran2.jpg',
-        'assets/images/restoran1.jpg',
-        'assets/images/restoran3.jpg',
-      ],
-    },
-    {
-      'image': 'assets/images/restoran3.jpg',
-      'name': 'La Favela',
-      'cuisine': 'Fusion • Barat',
-      'distance': '2.1 km',
-      'rating': '4.6',
-      'priceRange': 'Rp 150-300k',
-      'location': 'Jl. Kayu Aya, Seminyak, Bali',
-      'description':
-          'La Favela adalah restoran populer di Bali yang menyajikan hidangan fusion dengan dekorasi artistik dan suasana yang unik.',
-      'detailImages': [
-        'assets/images/restoran3.jpg',
-        'assets/images/restoran1.jpg',
-        'assets/images/restoran2.jpg',
-      ],
-    },
-  ];
+  final _restaurantService = RestaurantService();
+  final _wisataService = WisataService();
 
-  void onSearchChanged(String value) {
-    isSearching.value = value.isNotEmpty;
+  @override
+  void onInit() {
+    super.onInit();
+    _fetchAll();
   }
+
+  // ── FETCH ───────────────────────────────────────────────────
+
+  Future<void> _fetchAll() async {
+    await Future.wait([
+      _fetchCities(),
+      _fetchFeaturedRestaurants(),
+      _fetchWisata(),
+    ]);
+  }
+
+  Future<void> _fetchCities() async {
+    try {
+      isLoadingCities.value = true;
+      errorCities.value = null;
+      final data = await _wisataService.fetchAllCities();
+      cities.assignAll(data);
+    } catch (_) {
+      errorCities.value = 'Gagal memuat kota. Coba lagi.';
+    } finally {
+      isLoadingCities.value = false;
+    }
+  }
+
+  Future<void> _fetchFeaturedRestaurants() async {
+    try {
+      isLoadingRestoran.value = true;
+      errorRestoran.value = null;
+      final data = await _restaurantService.fetchFeaturedRestaurants();
+      topRestaurants.assignAll(data);
+    } catch (_) {
+      errorRestoran.value = 'Gagal memuat restoran. Coba lagi.';
+    } finally {
+      isLoadingRestoran.value = false;
+    }
+  }
+
+  Future<void> _fetchWisata() async {
+    try {
+      isLoadingWisata.value = true;
+      errorWisata.value = null;
+
+      final featured = await _wisataService.fetchFeaturedWisata();
+      popularWisata.assignAll(featured);
+
+      // "Terakhir dilihat" diambil dari 2 wisata pertama (nanti bisa
+      // diganti dengan data visit_histories milik user yang sedang login)
+      recentWisata.assignAll(featured.take(2).toList());
+    } catch (_) {
+      errorWisata.value = 'Gagal memuat wisata. Coba lagi.';
+    } finally {
+      isLoadingWisata.value = false;
+    }
+  }
+
+  Future<void> refreshAll() => _fetchAll();
+  Future<void> refreshRestaurants() => _fetchFeaturedRestaurants();
+
+  // ── NAVIGASI ────────────────────────────────────────────────
+
+  void onSearchChanged(String value) => isSearching.value = value.isNotEmpty;
 
   void clearSearch() {
     searchController.clear();
     isSearching.value = false;
   }
 
-  void goToDetailWisata(Map<String, dynamic> data) {
-    // Get.toNamed: wisata bisa di-back ke Home
-    Get.toNamed(Routes.DETAIL_WISATA, arguments: data);
-  }
+  void goToDestinationCity(CityModel city) =>
+      Get.toNamed(Routes.DESTINATION_CITY, arguments: city.toArguments());
 
-  void goToDetailRestoran(Map<String, dynamic> data) {
-    // Get.toNamed: restoran bisa di-back ke Home
-    Get.toNamed(Routes.DETAIL_RESTORAN, arguments: data);
-  }
+  void goToDetailWisata(WisataModel wisata) =>
+      Get.toNamed(Routes.DETAIL_WISATA, arguments: wisata.toArguments());
 
-  void goToDestinationCity(Map<String, dynamic> data) {
-    // Get.toNamed: detail kota bisa di-back ke Home
-    Get.toNamed(Routes.DESTINATION_CITY, arguments: data);
-  }
+  void goToDetailRestoran(RestaurantModel resto) =>
+      Get.toNamed(Routes.DETAIL_RESTORAN, arguments: resto.toArguments());
 
   @override
   void onClose() {

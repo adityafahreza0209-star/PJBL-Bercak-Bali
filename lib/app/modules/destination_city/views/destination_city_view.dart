@@ -1,8 +1,9 @@
+import 'package:bercak_bali/app/services/restaurant_service.dart';
+import 'package:bercak_bali/app/services/wisata_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/theme_constants.dart';
 import '../../../widgets/custom_navbar.dart';
-import '../../../widgets/maps_helper.dart';
 import '../controllers/destination_city_controller.dart';
 
 class DestinationCityView extends GetView<DestinationCityController> {
@@ -14,7 +15,6 @@ class DestinationCityView extends GetView<DestinationCityController> {
   }
 }
 
-// Body pakai StatefulWidget untuk TabController
 class _DestinationCityBody extends StatefulWidget {
   final DestinationCityController controller;
   const _DestinationCityBody({required this.controller});
@@ -48,7 +48,7 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
-            // HEADER GAMBAR + INFO KOTA
+            // ── HEADER GAMBAR + INFO KOTA ─────────────────────
             SliverAppBar(
               expandedHeight: 280,
               pinned: true,
@@ -65,17 +65,16 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(
-                      c.image,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.cardColor,
-                        child: const Center(
-                          child: Icon(Icons.location_city,
-                              color: AppColors.white54, size: 64),
-                        ),
-                      ),
-                    ),
+                    // Gambar kota dari Supabase Storage
+                    c.imageUrl.isNotEmpty
+                        ? Image.network(
+                            c.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _cityImageFallback(),
+                          )
+                        : _cityImageFallback(),
+
+                    // Gradient gelap di bawah
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -88,21 +87,30 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
                         ),
                       ),
                     ),
+
+                    // Nama & region kota
                     Positioned(
                       bottom: 20,
                       left: 20,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(c.cityName,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold)),
+                          Text(
+                            c.cityName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 4),
-                          Text(c.region,
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 16)),
+                          Text(
+                            c.region,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -110,7 +118,8 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
                 ),
               ),
             ),
-            // TAB BAR
+
+            // ── TAB BAR ───────────────────────────────────────
             SliverPersistentHeader(
               delegate: _StickyTabBarDelegate(
                 TabBar(
@@ -132,8 +141,8 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildRestaurantTab(c),
-            _buildAttractionTab(c),
+            _RestaurantTab(c),
+            _WisataTab(c),
           ],
         ),
       ),
@@ -141,194 +150,99 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
     );
   }
 
-  // ================= TAB RESTORAN =================
-  Widget _buildRestaurantTab(DestinationCityController c) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // DESKRIPSI KOTA
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.cardColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(c.cityName,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text(c.description,
-                    style: const TextStyle(
-                        color: AppColors.white70, fontSize: 14, height: 1.5)),
-                const SizedBox(height: 12),
-                const Text('Selengkapnya',
-                    style: TextStyle(
-                        color: AppColors.primaryColor,
-                        fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // HEADER RESTORAN
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Restoran',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Semua tempat yang hidangannya terbukti enak',
-                      style:
-                          TextStyle(color: AppColors.white54, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const Text('Lihat semua',
-                  style: TextStyle(
-                      color: AppColors.primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13)),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // LIST RESTORAN
-          ...c.recommendedRestaurants
-              .map((resto) => _restaurantCard(resto, c))
-              .toList(),
-
-          const SizedBox(height: 24),
-          const Text('Peta',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          MapsPreviewTile(
-            location: c.cityName,
-            address: '${c.cityName}, ${c.region}, Bali',
-          ),
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-
-  // ================= TAB WISATA =================
-  Widget _buildAttractionTab(DestinationCityController c) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Hal yang dapat dilakukan',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('Tempat wisata terbaik di ${c.cityName}',
-              style:
-                  const TextStyle(color: AppColors.white54, fontSize: 12)),
-          const SizedBox(height: 20),
-
-          ...c.recommendedAttractions
-              .map((wisata) => _attractionCard(wisata, c))
-              .toList(),
-
-          const SizedBox(height: 24),
-          _cityStats(),
-          const SizedBox(height: 30),
-        ],
-      ),
-    );
-  }
-
-  // ================= STATISTIK KOTA =================
-  Widget _cityStats() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+  Widget _cityImageFallback() => Container(
         color: AppColors.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primaryColor.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _statItem(Icons.restaurant, 'Restoran', '120+',
-                  AppColors.primaryColor),
-              _statItem(Icons.place, 'Wisata', '45', AppColors.ratingColor),
-              _statItem(Icons.hotel, 'Hotel', '80+', Colors.blue),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Divider(height: 1, color: AppColors.white54),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _statItem(Icons.star, 'Rating', '4.6', Colors.amber),
-              _statItem(Icons.access_time, 'Jam Buka', '08:00-20:00',
-                  AppColors.primaryColor),
-              _statItem(Icons.attach_money, 'Tiket', 'Rp 15-50k',
-                  AppColors.ratingColor),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statItem(IconData icon, String label, String value, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 22),
+        child: const Center(
+          child: Icon(Icons.location_city, color: AppColors.white54, size: 64),
         ),
-        const SizedBox(height: 8),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 2),
-        Text(label,
-            style:
-                const TextStyle(color: AppColors.white54, fontSize: 11)),
-      ],
-    );
+      );
+
+  // ── TAB RESTORAN ────────────────────────────────────────────
+
+  Widget _RestaurantTab(DestinationCityController c) {
+    return Obx(() {
+      if (c.isLoadingRestoran.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (c.errorRestoran.value != null) {
+        return _ErrorRetry(
+          message: c.errorRestoran.value!,
+          onRetry: c.refreshRestaurants,
+        );
+      }
+
+      if (c.restaurants.isEmpty) {
+        return const Center(
+          child: Text(
+            'Belum ada restoran di kota ini.',
+            style: TextStyle(color: Colors.white54),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: c.restaurants.length,
+        itemBuilder: (_, i) => _RestaurantCard(
+          resto: c.restaurants[i],
+          onTap: () => c.goToDetailRestoran(c.restaurants[i]),
+        ),
+      );
+    });
   }
 
-  // ================= RESTORAN CARD =================
-  Widget _restaurantCard(
-      Map<String, dynamic> resto, DestinationCityController c) {
+  // ── TAB WISATA ───────────────────────────────────────────────
+
+  Widget _WisataTab(DestinationCityController c) {
+    return Obx(() {
+      if (c.isLoadingWisata.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+
+      if (c.errorWisata.value != null) {
+        return _ErrorRetry(
+          message: c.errorWisata.value!,
+          onRetry: c.refreshWisata,
+        );
+      }
+
+      if (c.wisataList.isEmpty) {
+        return const Center(
+          child: Text(
+            'Belum ada wisata di kota ini.',
+            style: TextStyle(color: Colors.white54),
+          ),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: c.wisataList.length,
+        itemBuilder: (_, i) => _WisataCard(
+          wisata: c.wisataList[i],
+          onTap: () => c.goToDetailWisata(c.wisataList[i]),
+        ),
+      );
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CARD: RESTORAN
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RestaurantCard extends StatelessWidget {
+  final RestaurantModel resto;
+  final VoidCallback onTap;
+  const _RestaurantCard({required this.resto, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = resto.images.isNotEmpty ? resto.images.first : '';
+
     return GestureDetector(
-      onTap: () => c.goToDetailRestoran(resto),
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(12),
@@ -338,15 +252,17 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
         ),
         child: Row(
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                image: DecorationImage(
-                  image: AssetImage(resto['image']),
-                  fit: BoxFit.cover,
-                ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: image.isNotEmpty
+                    ? Image.network(image,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _imageFallback(
+                            Icons.restaurant))
+                    : _imageFallback(Icons.restaurant),
               ),
             ),
             const SizedBox(width: 12),
@@ -354,48 +270,35 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(resto['name'],
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    resto.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.ratingColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star,
-                                color: Colors.white, size: 10),
-                            const SizedBox(width: 2),
-                            Text(resto['rating'],
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
+                      _RatingBadge(rating: resto.rating.toStringAsFixed(1)),
                       const SizedBox(width: 6),
-                      Text('${resto['reviews']} ulasan',
-                          style: const TextStyle(
-                              color: AppColors.white54, fontSize: 11)),
+                      Text(
+                        '${resto.totalReviews} ulasan',
+                        style: const TextStyle(
+                            color: AppColors.white54, fontSize: 11),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('${resto['price']} • ${resto['cuisine']}',
-                      style: const TextStyle(
-                          color: AppColors.white70, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    '${resto.priceRange} • ${resto.cuisine}',
+                    style: const TextStyle(
+                        color: AppColors.white70, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
@@ -403,115 +306,14 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
                           color: AppColors.primaryColor, size: 11),
                       const SizedBox(width: 2),
                       Expanded(
-                        child: Text(resto['location'],
-                            style: const TextStyle(
-                                color: AppColors.white54, fontSize: 11),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right,
-                color: AppColors.white54, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ================= WISATA CARD =================
-  Widget _attractionCard(
-      Map<String, dynamic> wisata, DestinationCityController c) {
-    return GestureDetector(
-      onTap: () => c.goToDetailWisata(wisata),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.cardColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                image: DecorationImage(
-                  image: AssetImage(wisata['image']),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(wisata['name'],
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.ratingColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star,
-                                color: Colors.white, size: 10),
-                            const SizedBox(width: 2),
-                            Text(wisata['rating'],
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold)),
-                          ],
+                        child: Text(
+                          resto.location,
+                          style: const TextStyle(
+                              color: AppColors.white54, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Text('(${wisata['reviews']})',
-                          style: const TextStyle(
-                              color: AppColors.white54, fontSize: 11)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(wisata['location'],
-                      style: const TextStyle(
-                          color: AppColors.white70, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(Icons.attach_money,
-                          color: AppColors.primaryColor, size: 11),
-                      const SizedBox(width: 2),
-                      Text(wisata['price'],
-                          style: const TextStyle(
-                              color: AppColors.primaryColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.access_time,
-                          color: AppColors.white54, size: 11),
-                      const SizedBox(width: 2),
-                      const Text('2-3 jam',
-                          style: TextStyle(
-                              color: AppColors.white54, fontSize: 11)),
                     ],
                   ),
                 ],
@@ -526,7 +328,183 @@ class _DestinationCityBodyState extends State<_DestinationCityBody>
   }
 }
 
-// ================= STICKY TAB BAR DELEGATE =================
+// ─────────────────────────────────────────────────────────────────────────────
+// CARD: WISATA
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _WisataCard extends StatelessWidget {
+  final WisataModel wisata;
+  final VoidCallback onTap;
+  const _WisataCard({required this.wisata, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cardColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 80,
+                height: 80,
+                child: wisata.imageUrl.isNotEmpty
+                    ? Image.network(wisata.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            _imageFallback(Icons.landscape))
+                    : _imageFallback(Icons.landscape),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    wisata.title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _RatingBadge(
+                          rating: wisata.rating.toStringAsFixed(1)),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${wisata.totalReviews} ulasan',
+                        style: const TextStyle(
+                            color: AppColors.white54, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    wisata.location,
+                    style: const TextStyle(
+                        color: AppColors.white70, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Icon(Icons.attach_money,
+                          color: AppColors.primaryColor, size: 11),
+                      const SizedBox(width: 2),
+                      Text(
+                        wisata.ticketPrice,
+                        style: const TextStyle(
+                          color: AppColors.primaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.access_time,
+                          color: AppColors.white54, size: 11),
+                      const SizedBox(width: 2),
+                      Text(
+                        wisata.duration,
+                        style: const TextStyle(
+                            color: AppColors.white54, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right,
+                color: AppColors.white54, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED WIDGETS
+// ─────────────────────────────────────────────────────────────────────────────
+
+Widget _imageFallback(IconData icon) => Container(
+      color: AppColors.cardColor,
+      child: Icon(icon, color: Colors.white54, size: 32),
+    );
+
+class _RatingBadge extends StatelessWidget {
+  final String rating;
+  const _RatingBadge({required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.ratingColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star, color: Colors.white, size: 10),
+          const SizedBox(width: 2),
+          Text(
+            rating,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorRetry extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorRetry({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Coba lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STICKY TAB BAR DELEGATE
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _StickyTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
   const _StickyTabBarDelegate(this.tabBar);

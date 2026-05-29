@@ -1,56 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/review_service.dart';
 import '../../../widgets/theme_constants.dart';
+import '../../../routes/app_pages.dart';
 
 class MyReviewsController extends GetxController {
-  // Data review statis (nanti dari Supabase)
-  var myReviews = <Map<String, dynamic>>[
-    {
-      'id': '1',
-      'placeName': 'Pantai Kelingking',
-      'rating': 5,
-      'date': '15 Februari 2026',
-      'usefulCount': 10,
-      'review': 'Pemandangan sangat indah! Airnya jernih, sayang aksesnya cukup ekstrim tapi worth it.',
-      'image': 'assets/images/kelingking.jpg',
-    },
-    {
-      'id': '2',
-      'placeName': 'Warung Babi Guling Ibu Oka',
-      'rating': 4,
-      'date': '10 Februari 2026',
-      'usefulCount': 5,
-      'review': 'Babi gulingnya enak, bumbu meresap. Antrian lumayan panjang tapi cepat.',
-      'image': 'assets/images/restoran1.jpg',
-    },
-    {
-      'id': '3',
-      'placeName': 'Tegalalang Rice Terrace',
-      'rating': 5,
-      'date': '5 Februari 2026',
-      'usefulCount': 15,
-      'review': 'Sawah terasering yang hijau, cocok untuk foto pagi hari. Ada ayunan instagramable.',
-      'image': 'assets/images/tegalalang.jpg',
-    },
-  ].obs;
+  final _reviewService = ReviewService();
+  
+  final myReviews = <ReviewModel>[].obs;
+  final isLoading = false.obs;
 
-  void editReview(Map<String, dynamic> review) {
-    // Nanti akan navigasi ke halaman edit review
-    Get.snackbar(
-      'Edit Review',
-      'Fitur edit akan segera hadir untuk ${review['placeName']}',
-      backgroundColor: AppColors.primaryColor,
-      colorText: Colors.white,
-    );
+  @override
+  void onInit() {
+    super.onInit();
+    fetchReviews();
   }
 
-  void deleteReview(Map<String, dynamic> review) {
+  Future<void> fetchReviews() async {
+    final userId = AuthService.to.userId;
+    if (userId.isEmpty) return;
+
+    isLoading.value = true;
+    try {
+      final reviews = await _reviewService.fetchUserReviews(userId);
+      myReviews.assignAll(reviews);
+    } catch (e) {
+      Get.snackbar(
+        'Gagal',
+        'Terjadi kesalahan saat memuat ulasan Anda.',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> editReview(ReviewModel review) async {
+    final result = await Get.toNamed(
+      Routes.WRITE_REVIEW,
+      arguments: {
+        'review': review,
+      },
+    );
+    
+    if (result == true) {
+      fetchReviews();
+    }
+  }
+
+  void deleteReview(ReviewModel review) {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.cardColor,
         title: const Text('Hapus Ulasan', style: TextStyle(color: Colors.white)),
         content: Text(
-          'Apakah Anda yakin ingin menghapus ulasan untuk ${review['placeName']}?',
+          'Apakah Anda yakin ingin menghapus ulasan untuk ${review.placeName ?? 'tempat ini'}?',
           style: const TextStyle(color: AppColors.white70),
         ),
         actions: [
@@ -63,16 +69,33 @@ class MyReviewsController extends GetxController {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            onPressed: () {
-              myReviews.remove(review);
-              Get.back();
-              Get.snackbar(
-                'Berhasil',
-                'Ulasan berhasil dihapus',
-                backgroundColor: Colors.green,
-                colorText: Colors.white,
-                snackPosition: SnackPosition.BOTTOM,
-              );
+            onPressed: () async {
+              Get.back(); // Tutup dialog
+              isLoading.value = true;
+              try {
+                await _reviewService.deleteReview(
+                  reviewId: review.id,
+                  userId: AuthService.to.userId,
+                );
+                myReviews.remove(review);
+                Get.snackbar(
+                  'Berhasil',
+                  'Ulasan berhasil dihapus',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (e) {
+                Get.snackbar(
+                  'Gagal',
+                  'Gagal menghapus ulasan. Silakan coba lagi.',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } finally {
+                isLoading.value = false;
+              }
             },
             child: const Text('Hapus'),
           ),

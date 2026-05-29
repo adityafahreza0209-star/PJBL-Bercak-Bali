@@ -1,94 +1,96 @@
 import 'package:get/get.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/saved_place_service.dart';
+import '../../../routes/app_pages.dart';
+
+enum SimpanTab { semua, wisata, restoran }
 
 class SimpanController extends GetxController {
-  // Gunakan RxList agar bisa dideteksi Obx
-  var selectedTab = 'Semua'.obs;
-  
-  final List<String> categories = const [
-    'Semua', 'Alam', 'Pantai', 'Budaya', 'Hidden Gem', 'Restoran'
-  ];
-  
-  // Gunakan RxList
-  var savedItems = <Map<String, dynamic>>[
-    {
-      'image': 'assets/images/tegalalang.jpg',
-      'title': 'Tegalalang Rice Terrace',
-      'location': 'Gianyar, Bali',
-      'rating': '4.7',
-      'savedDate': '2 hari lalu',
-      'category': 'Alam',
-    },
-    {
-      'image': 'assets/images/kelingking.jpg',
-      'title': 'Pantai Kelingking',
-      'location': 'Nusa Penida, Bali',
-      'rating': '4.9',
-      'savedDate': '5 hari lalu',
-      'category': 'Pantai',
-    },
-    {
-      'image': 'assets/images/uluwatu.jpg',
-      'title': 'Pura Uluwatu',
-      'location': 'Badung, Bali',
-      'rating': '4.8',
-      'savedDate': '1 minggu lalu',
-      'category': 'Budaya',
-    },
-    {
-      'image': 'assets/images/lahangan.jpg',
-      'title': 'Lahangan Sweet',
-      'location': 'Karangasem, Bali',
-      'rating': '4.8',
-      'savedDate': '2 minggu lalu',
-      'category': 'Hidden Gem',
-    },
-    {
-      'image': 'assets/images/restoran1.jpg',
-      'title': 'Warung Babi Guling Ibu Oka',
-      'location': 'Ubud, Bali',
-      'rating': '4.8',
-      'savedDate': '3 hari lalu',
-      'category': 'Restoran',
-    },
-    {
-      'image': 'assets/images/restoran2.jpg',
-      'title': 'Bebek Bengil Dirty Duck',
-      'location': 'Ubud, Bali',
-      'rating': '4.7',
-      'savedDate': '1 minggu lalu',
-      'category': 'Restoran',
-    },
-    {
-      'image': 'assets/images/restoran3.jpg',
-      'title': 'La Favela',
-      'location': 'Seminyak, Bali',
-      'rating': '4.6',
-      'savedDate': '2 minggu lalu',
-      'category': 'Restoran',
-    },
-    {
-      'image': 'assets/images/denpasar.jpg',
-      'title': 'Tukad Cepung Waterfall',
-      'location': 'Bangli, Bali',
-      'rating': '4.7',
-      'savedDate': '3 minggu lalu',
-      'category': 'Alam',
-    },
-  ].obs; // <-- OBS di sini
+  // ── State ────────────────────────────────────────────────────
+  final activeTab = SimpanTab.semua.obs;
+  final allItems = <SavedPlaceItem>[].obs;
+  final isLoading = true.obs;
+  final errorMessage = ''.obs;
 
-  // Getter dengan .value
-  List<Map<String, dynamic>> get filteredItems {
-    if (selectedTab.value == 'Semua') return savedItems.toList();
-    return savedItems.where((item) => item['category'] == selectedTab.value).toList();
+  // ── Service ──────────────────────────────────────────────────
+  final _service = SavedPlaceService();
+
+  // ── Getters ──────────────────────────────────────────────────
+
+  List<SavedPlaceItem> get filteredItems {
+    return switch (activeTab.value) {
+      SimpanTab.wisata => allItems.where((i) => i.placeType == 'wisata').toList(),
+      SimpanTab.restoran => allItems.where((i) => i.placeType == 'restoran').toList(),
+      SimpanTab.semua => allItems.toList(),
+    };
   }
 
-  void selectTab(String tab) {
-    selectedTab.value = tab;
-    update(); // Panggil update() untuk GetBuilder, atau biarkan Rx bekerja
+  // ── Lifecycle ────────────────────────────────────────────────
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadSavedPlaces();
   }
 
-  // Tambahkan method untuk refresh jika perlu
-  void refreshData() {
-    savedItems.refresh();
+  // ── Data ─────────────────────────────────────────────────────
+
+  Future<void> loadSavedPlaces() async {
+    // Pastikan user sudah login
+    if (!AuthService.to.isLoggedIn.value) {
+      isLoading.value = false;
+      return;
+    }
+
+    isLoading.value = true;
+    errorMessage.value = '';
+
+    try {
+      final userId = AuthService.to.userId;
+      final items = await _service.fetchSavedPlaces(userId);
+      allItems.assignAll(items);
+    } catch (_) {
+      errorMessage.value = 'Gagal memuat data. Tarik ke bawah untuk coba lagi.';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> onRefresh() => loadSavedPlaces();
+
+  // ── Actions ───────────────────────────────────────────────────
+
+  void selectTab(SimpanTab tab) => activeTab.value = tab;
+
+  /// Hapus item dari list lokal dulu (optimistic), lalu sinkron ke Supabase.
+  Future<void> unsaveItem(SavedPlaceItem item) async {
+    allItems.remove(item);
+
+    try {
+      await _service.unsave(item.savedId);
+      Get.snackbar(
+        'Dihapus',
+        '${item.title} dihapus dari simpanan',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (_) {
+      // Rollback jika gagal
+      allItems.add(item);
+      allItems.sort((a, b) => b.savedAt.compareTo(a.savedAt));
+      Get.snackbar(
+        'Gagal',
+        'Tidak dapat menghapus. Coba lagi.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  void goToDetail(SavedPlaceItem item) {
+    if (item.placeType == 'wisata' && item.wisata != null) {
+      Get.toNamed(Routes.DETAIL_WISATA, arguments: item.wisata!.toArguments());
+    } else if (item.restaurant != null) {
+      Get.toNamed(Routes.DETAIL_RESTORAN, arguments: item.restaurant!.toArguments());
+    }
   }
 }

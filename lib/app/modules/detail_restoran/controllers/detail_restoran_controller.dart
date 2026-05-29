@@ -1,183 +1,279 @@
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../routes/app_pages.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/restaurant_service.dart';
+import '../../../services/review_service.dart';
 
 class DetailRestoranController extends GetxController {
-  // Data diterima via Get.toNamed arguments
-  late List<String> images;
-  late String name;
-  late String location;
-  late String cuisine;
-  late String rating;
-  late String priceRange;
-  late String distance;
-  late String description;
+  // ── State utama ───────────────────────────────────────────────
+  final isLoading = true.obs;
+  final errorMessage = RxnString();
 
+  // ── Data restoran (diisi setelah fetch) ───────────────────────
+  RestaurantModel? _restoran;
+
+  String get name        => _restoran?.name        ?? '';
+  String get location    => _restoran?.location    ?? '';
+  String get cuisine     => _restoran?.cuisine     ?? '';
+  String get description => _restoran?.description ?? '';
+  String get priceRange  => _restoran?.priceRange  ?? '';
+  String get distance    => _restoran?.distance    ?? '';
+  String get phoneNumber => _restoran?.phoneNumber ?? '';
+  String get rating      => _restoran?.rating.toStringAsFixed(1) ?? '0.0';
+  int    get totalUlasan => _restoran?.totalReviews ?? 0;
+  double get latitude    => _restoran?.latitude    ?? 0.0;
+  double get longitude   => _restoran?.longitude   ?? 0.0;
+  List<String> get images => _restoran?.images     ?? [];
+
+  // ── State carousel gambar ─────────────────────────────────────
   final currentImage = 0.obs;
+
+  // ── State simpan/favorit ──────────────────────────────────────
   final isFavorite = false.obs;
 
-  final double dummyLat = -8.530337;
-  final double dummyLng = 115.271665;
-  final String phoneNumber = '+62-8123-8309-927';
+  // ── State reviews ─────────────────────────────────────────────
+  final reviews = <ReviewModel>[].obs;
+  final isLoadingReviews = false.obs;
 
-  // ========== DATA REVIEWS DENGAN USEFUL COUNT ==========
-  final List<Map<String, dynamic>> reviews = [
-    {
-      'name': 'Made',
-      'userId': 'user_made',
-      'rating': 5,
-      'date': 'Feb 2026',
-      'comment': 'Makanannya enak banget! Pelayanan cepat dan ramah. Wajib coba bebek gulainya!',
-      'usefulCount': 12,
-    },
-    {
-      'name': 'Ketut',
-      'userId': 'user_ketut',
-      'rating': 4,
-      'date': 'Jan 2026',
-      'comment': 'Suasananya nyaman, cocok untuk dinner romantis. Harga sedikit mahal tapi sesuai kualitas.',
-      'usefulCount': 8,
-    },
-    {
-      'name': 'Wayan',
-      'userId': 'user_wayan',
-      'rating': 5,
-      'date': 'Des 2025',
-      'comment': 'Sate lilitnya juara! View sawahnya bikin makan makin nikmat.',
-      'usefulCount': 15,
-    },
-  ];
+  // ── State tombol "Berguna" per review (key = review_id) ───────
+  final usefulCounts = <String, int>{}.obs;
+  final userUseful   = <String, bool>{}.obs;
 
-  // ========== STATE UNTUK TOMBOL BERGUNA ==========
-  final usefulCounts = <int, int>{}.obs;  // index -> jumlah useful
-  final userUseful = <int, bool>{}.obs;   // index -> apakah user sudah klik
+  // ── State menu ────────────────────────────────────────────────
+  final menuItems    = <MenuItemModel>[].obs;
+  final isLoadingMenu = false.obs;
 
-  // Data menu
-  final List<Map<String, dynamic>> menuItems = const [
-    {
-      'name': 'Bebek Goreng',
-      'price': 'Rp 85.000',
-      'category': 'Makanan',
-      'popular': true,
-    },
-    {
-      'name': 'Sate Lilit',
-      'price': 'Rp 65.000',
-      'category': 'Makanan',
-      'popular': true,
-    },
-    {
-      'name': 'Nasi Campur',
-      'price': 'Rp 75.000',
-      'category': 'Makanan',
-      'popular': false,
-    },
-    {
-      'name': 'Es Jeruk',
-      'price': 'Rp 25.000',
-      'category': 'Minuman',
-      'popular': false,
-    },
-    {
-      'name': 'Kelapa Muda',
-      'price': 'Rp 35.000',
-      'category': 'Minuman',
-      'popular': true,
-    },
-  ];
+  final _restaurantService = RestaurantService();
+  final _reviewService     = ReviewService();
+  String _restaurantId     = '';
 
-  List<Map<String, dynamic>> get menuMakanan =>
-      menuItems.where((item) => item['category'] == 'Makanan').toList();
-
-  List<Map<String, dynamic>> get menuMinuman =>
-      menuItems.where((item) => item['category'] == 'Minuman').toList();
+  // ── Getter menu per kategori ──────────────────────────────────
+  List<MenuItemModel> get menuMakanan =>
+      menuItems.where((m) => m.category == 'Makanan').toList();
+  List<MenuItemModel> get menuMinuman =>
+      menuItems.where((m) => m.category == 'Minuman').toList();
 
   @override
   void onInit() {
     super.onInit();
-    
-    // Ambil arguments dari navigasi
     final args = Get.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      images = (args['images'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          ['assets/images/restoran1.jpg'];
-      name = args['name'] ?? '';
-      location = args['location'] ?? '';
-      cuisine = args['cuisine'] ?? '';
-      rating = args['rating'] ?? '0';
-      priceRange = args['priceRange'] ?? '';
-      distance = args['distance'] ?? '';
-      description = args['description'] ?? '';
-    } else {
-      images = ['assets/images/restoran1.jpg'];
-      name = '';
-      location = '';
-      cuisine = '';
-      rating = '0';
-      priceRange = '';
-      distance = '';
-      description = '';
+    _restaurantId = args?['restaurantId'] as String? ?? '';
+
+    if (_restaurantId.isEmpty) {
+      errorMessage.value = 'ID restoran tidak valid.';
+      isLoading.value = false;
+      return;
     }
-    
-    // Inisialisasi useful counts dari data reviews
-    for (int i = 0; i < reviews.length; i++) {
-      usefulCounts[i] = reviews[i]['usefulCount'] ?? 0;
-      userUseful[i] = false;
+
+    _fetchAll();
+  }
+
+  // ── FETCH ─────────────────────────────────────────────────────
+
+  Future<void> _fetchAll() async {
+    await Future.wait([
+      _fetchRestoranDetail(),
+      _fetchReviews(),
+      _fetchMenus(),
+    ]);
+  }
+
+  Future<void> _fetchRestoranDetail() async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = null;
+
+      final data = await _restaurantService.fetchRestaurantById(_restaurantId);
+      if (data == null) {
+        errorMessage.value = 'Restoran tidak ditemukan.';
+        return;
+      }
+
+      _restoran = data;
+
+      final userId = AuthService.to.userId;
+      if (userId.isNotEmpty) {
+        isFavorite.value = await _restaurantService.isSaved(
+          restaurantId: _restaurantId,
+          userId: userId,
+        );
+        await _restaurantService.recordVisit(
+          restaurantId: _restaurantId,
+          userId: userId,
+        );
+      }
+    } catch (_) {
+      errorMessage.value = 'Gagal memuat data restoran. Coba lagi.';
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  void onPageChanged(int index) {
-    currentImage.value = index;
-  }
+  Future<void> _fetchReviews() async {
+    if (_restaurantId.isEmpty) return;
+    try {
+      isLoadingReviews.value = true;
 
-  void toggleFavorite() {
-    isFavorite.value = !isFavorite.value;
-  }
+      final data = await _reviewService.fetchRestaurantReviews(_restaurantId);
+      reviews.assignAll(data);
 
-  // ========== FUNGSI TOMBOL BERGUNA ==========
-  void toggleUseful(int index) {
-    if (userUseful[index] == true) {
-      // Jika sudah klik, kurangi
-      usefulCounts[index] = (usefulCounts[index] ?? 0) - 1;
-      userUseful[index] = false;
-    } else {
-      // Jika belum klik, tambah
-      usefulCounts[index] = (usefulCounts[index] ?? 0) + 1;
-      userUseful[index] = true;
+      // Inisialisasi state berguna dari data Supabase
+      for (final r in data) {
+        usefulCounts[r.id] = r.usefulCount;
+        userUseful[r.id]   = false;
+      }
+
+      // Tandai review yang sudah di-vote user ini
+      final userId = AuthService.to.userId;
+      if (userId.isNotEmpty) {
+        final votedIds = await _reviewService.fetchUserVotes(userId);
+        for (final id in votedIds) {
+          if (userUseful.containsKey(id)) {
+            userUseful[id] = true;
+          }
+        }
+      }
+    } catch (_) {
+      // Gagal load review tidak fatal
+    } finally {
+      isLoadingReviews.value = false;
     }
-    // Nanti panggil API untuk update ke Supabase
   }
 
-  Future<void> openGoogleMaps(double lat, double lng) async {
-    final Uri url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+  Future<void> _fetchMenus() async {
+    if (_restaurantId.isEmpty) return;
+    try {
+      isLoadingMenu.value = true;
+      final data = await _restaurantService.fetchMenus(_restaurantId);
+      menuItems.assignAll(data);
+    } catch (_) {
+      // Menu gagal dimuat — UI cukup kosong
+    } finally {
+      isLoadingMenu.value = false;
+    }
+  }
+
+  // Dipanggil setelah submit review berhasil
+  Future<void> refresh() => _fetchAll();
+
+  // ── AKSI TERPROTEKSI (perlu login) ────────────────────────────
+
+  Future<void> toggleFavorite() async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menyimpan restoran.');
+      return;
+    }
+
+    final userId      = AuthService.to.userId;
+    final nowFavorite = isFavorite.value;
+
+    isFavorite.value = !nowFavorite; // optimistic update
+
+    try {
+      if (nowFavorite) {
+        await _restaurantService.unsavePlace(
+            restaurantId: _restaurantId, userId: userId);
+      } else {
+        await _restaurantService.savePlace(
+            restaurantId: _restaurantId, userId: userId);
+      }
+    } catch (_) {
+      isFavorite.value = nowFavorite; // rollback
+      Get.snackbar('Gagal', 'Tidak bisa menyimpan restoran. Coba lagi.');
+    }
+  }
+
+  Future<void> toggleUseful(String reviewId) async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menandai ulasan berguna.');
+      return;
+    }
+
+    final userId       = AuthService.to.userId;
+    final alreadyVoted = userUseful[reviewId]  ?? false;
+    final currentCount = usefulCounts[reviewId] ?? 0;
+
+    // Optimistic update
+    userUseful[reviewId]   = !alreadyVoted;
+    usefulCounts[reviewId] =
+        alreadyVoted ? currentCount - 1 : currentCount + 1;
+
+    try {
+      if (alreadyVoted) {
+        await _reviewService.removeVote(reviewId: reviewId, userId: userId);
+      } else {
+        await _reviewService.addVote(reviewId: reviewId, userId: userId);
+      }
+    } catch (_) {
+      // Rollback
+      userUseful[reviewId]   = alreadyVoted;
+      usefulCounts[reviewId] = currentCount;
+      Get.snackbar('Gagal', 'Tidak bisa memproses vote. Coba lagi.');
+    }
+  }
+
+  Future<void> goToWriteReview() async {
+    if (!AuthService.to.isLoggedIn.value) {
+      AuthService.to.requireLogin(
+          message: 'Login terlebih dahulu untuk menulis ulasan.');
+      return;
+    }
+
+    // result: true → review berhasil dikirim → refresh halaman
+    final result = await Get.toNamed(
+      Routes.WRITE_REVIEW,
+      arguments: {
+        'restaurantId': _restaurantId,
+        'placeName':    name,
+        'placeType':    'restoran',
+      },
+    );
+
+    if (result == true) await refresh();
+  }
+
+  // ── AKSI BEBAS (tidak perlu login) ────────────────────────────
+
+  void onPageChanged(int index) => currentImage.value = index;
+
+  Future<void> openGoogleMaps() async {
+    final lat = latitude;
+    final lng = longitude;
+
+    if (lat == 0.0 && lng == 0.0) {
+      Get.snackbar('Info', 'Koordinat lokasi belum tersedia.');
+      return;
+    }
+
+    final url = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        throw 'Tidak bisa membuka Google Maps';
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Tidak bisa membuka Google Maps: $e');
+    } catch (_) {
+      Get.snackbar('Error', 'Tidak bisa membuka Google Maps.');
     }
   }
 
   Future<void> callRestoran() async {
-    final Uri url = Uri.parse('tel:$phoneNumber');
+    if (phoneNumber.isEmpty) {
+      Get.snackbar('Info', 'Nomor telepon tidak tersedia.');
+      return;
+    }
+    final uri = Uri.parse('tel:$phoneNumber');
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url);
-      } else {
-        throw 'Tidak bisa melakukan panggilan';
-      }
-    } catch (e) {
-      Get.snackbar('Error', 'Tidak bisa melakukan panggilan: $e');
+      if (await canLaunchUrl(uri)) await launchUrl(uri);
+    } catch (_) {
+      Get.snackbar('Error', 'Tidak bisa melakukan panggilan.');
     }
   }
 
-  Future<void> sharePlace() async {
-    Get.snackbar('Bagikan', 'Fitur bagikan segera hadir');
-  }
+  Future<void> sharePlace() async =>
+      Get.snackbar('Bagikan', 'Fitur bagikan segera hadir.');
 
   void goBack() => Get.back();
 }

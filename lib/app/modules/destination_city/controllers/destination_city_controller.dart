@@ -1,123 +1,93 @@
 import 'package:get/get.dart';
 import '../../../../app/routes/app_pages.dart';
+import '../../../services/restaurant_service.dart';
+import '../../../services/wisata_service.dart';
 
 class DestinationCityController extends GetxController {
-  // Data diterima dari arguments Get.toNamed
+  // Data kota diterima via Get.arguments
+  late String cityId;
   late String cityName;
   late String region;
-  late String image;
   late String description;
+  late String imageUrl;
 
-  // Data restoran rekomendasi
-  final List<Map<String, dynamic>> recommendedRestaurants = const [
-    {
-      'name': 'Motel Mexicola Seminyak',
-      'rating': '4.1',
-      'reviews': '5.865',
-      'cuisine': 'Meksiko • Bar',
-      'price': 'Rp 150-300k',
-      'location': 'Seminyak, Indonesia',
-      'image': 'assets/images/restoran3.jpg',
-      'distance': '0.5 km',
-    },
-    {
-      'name': 'Waroeng Berna',
-      'rating': '4.9',
-      'reviews': '3.333',
-      'cuisine': 'Indonesia',
-      'price': 'Rp 50-150k',
-      'location': 'Seminyak, Indonesia',
-      'image': 'assets/images/restoran1.jpg',
-      'distance': '1.2 km',
-    },
-    {
-      'name': 'La Favela',
-      'rating': '4.6',
-      'reviews': '2.100',
-      'cuisine': 'Fusion • Barat',
-      'price': 'Rp 200-400k',
-      'location': 'Seminyak, Indonesia',
-      'image': 'assets/images/restoran2.jpg',
-      'distance': '2.0 km',
-    },
-  ];
+  // ── State restoran ──────────────────────────────────────────
+  final restaurants = <RestaurantModel>[].obs;
+  final isLoadingRestoran = false.obs;
+  final errorRestoran = RxnString();
 
-  // Data wisata rekomendasi
-  final List<Map<String, dynamic>> recommendedAttractions = const [
-    {
-      'name': 'Pantai Kelingking',
-      'rating': '4.6',
-      'reviews': '1.721',
-      'category': 'Pantai',
-      'location': 'Nusa Penida, Indonesia',
-      'image': 'assets/images/kelingking.jpg',
-      'price': 'Rp 15.000',
-    },
-    {
-      'name': 'Tanah Lot',
-      'rating': '4.2',
-      'reviews': '11.000',
-      'category': 'Tempat Menarik',
-      'location': 'Beraban, Indonesia',
-      'image': 'assets/images/tanahlot.jpg',
-      'price': 'Rp 30.000',
-    },
-    {
-      'name': 'Tegalalang Rice Terrace',
-      'rating': '4.7',
-      'reviews': '8.500',
-      'category': 'Alam',
-      'location': 'Ubud, Indonesia',
-      'image': 'assets/images/tegalalang.jpg',
-      'price': 'Rp 25.000',
-    },
-  ];
+  // ── State wisata ────────────────────────────────────────────
+  final wisataList = <WisataModel>[].obs;
+  final isLoadingWisata = false.obs;
+  final errorWisata = RxnString();
+
+  final _restaurantService = RestaurantService();
+  final _wisataService = WisataService();
 
   @override
   void onInit() {
     super.onInit();
+
     final args = Get.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      cityName = args['cityName'] ?? '';
-      region = args['region'] ?? '';
-      image = args['image'] ?? '';
-      description = args['description'] ?? '';
+    cityId = args?['cityId'] as String? ?? '';
+    cityName = args?['cityName'] as String? ?? '';
+    region = args?['region'] as String? ?? '';
+    description = args?['description'] as String? ?? '';
+    imageUrl = args?['imageUrl'] as String? ?? '';
+
+    // Muat restoran dan wisata secara paralel
+    Future.wait([
+      _fetchRestaurants(),
+      _fetchWisata(),
+    ]);
+  }
+
+  // ── FETCH ───────────────────────────────────────────────────
+
+  Future<void> _fetchRestaurants() async {
+    if (cityId.isEmpty) {
+      errorRestoran.value = 'ID kota tidak valid.';
+      return;
+    }
+    try {
+      isLoadingRestoran.value = true;
+      errorRestoran.value = null;
+      final data = await _restaurantService.fetchRestaurantsByCityId(cityId);
+      restaurants.assignAll(data);
+    } catch (_) {
+      errorRestoran.value = 'Gagal memuat restoran. Coba lagi.';
+    } finally {
+      isLoadingRestoran.value = false;
     }
   }
 
+  Future<void> _fetchWisata() async {
+    if (cityId.isEmpty) {
+      errorWisata.value = 'ID kota tidak valid.';
+      return;
+    }
+    try {
+      isLoadingWisata.value = true;
+      errorWisata.value = null;
+      final data = await _wisataService.fetchWisataByCityId(cityId);
+      wisataList.assignAll(data);
+    } catch (_) {
+      errorWisata.value = 'Gagal memuat wisata. Coba lagi.';
+    } finally {
+      isLoadingWisata.value = false;
+    }
+  }
+
+  Future<void> refreshRestaurants() => _fetchRestaurants();
+  Future<void> refreshWisata() => _fetchWisata();
+
+  // ── NAVIGASI ────────────────────────────────────────────────
+
   void goBack() => Get.back();
 
-  void goToDetailRestoran(Map<String, dynamic> resto) {
-    final data = {
-      'images': const [
-        'assets/images/restoran1.jpg',
-        'assets/images/restoran2.jpg',
-        'assets/images/restoran3.jpg',
-      ],
-      'name': resto['name'],
-      'location': resto['location'],
-      'cuisine': resto['cuisine'],
-      'rating': resto['rating'],
-      'priceRange': resto['price'],
-      'distance': resto['distance'],
-      'description':
-          '${resto['name']} adalah restoran rekomendasi di $cityName yang menyajikan hidangan lezat dengan suasana nyaman.',
-    };
-    // Get.toNamed: bisa back ke DestinationCity
-    Get.toNamed(Routes.DETAIL_RESTORAN, arguments: data);
-  }
+  void goToDetailRestoran(RestaurantModel resto) =>
+      Get.toNamed(Routes.DETAIL_RESTORAN, arguments: resto.toArguments());
 
-  void goToDetailWisata(Map<String, dynamic> wisata) {
-    final data = {
-      'title': wisata['name'],
-      'location': wisata['location'],
-      'detailImages': const [
-        'assets/images/kelingking.jpg',
-        'assets/images/tanahlot.jpg',
-        'assets/images/tegalalang.jpg',
-      ],
-    };
-    // Get.toNamed: bisa back ke DestinationCity
-    Get.toNamed(Routes.DETAIL_WISATA, arguments: data);
-  }
+  void goToDetailWisata(WisataModel wisata) =>
+      Get.toNamed(Routes.DETAIL_WISATA, arguments: wisata.toArguments());
 }

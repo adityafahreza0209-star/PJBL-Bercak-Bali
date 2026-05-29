@@ -1,3 +1,5 @@
+// lib/app/modules/edit_profile/views/edit_profile_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/theme_constants.dart';
@@ -11,34 +13,39 @@ class EditProfileView extends GetView<EditProfileController> {
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
-        if (!didPop) {
-          controller.handleBack();
-        }
+        if (!didPop) controller.handleBack();
       },
       child: Scaffold(
         backgroundColor: AppColors.bgColor,
-      body: Column(
-        children: [
-          _TopBar(controller: controller),
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-                  _AvatarSection(controller: controller),
-                  const SizedBox(height: 32),
-                  _FormSection(controller: controller),
-                  const SizedBox(height: 32),
-                  _SaveButton(controller: controller),
-                ],
-              ),
+        body: Column(
+          children: [
+            _TopBar(controller: controller),
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primaryColor),
+                  );
+                }
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      _AvatarSection(controller: controller),
+                      const SizedBox(height: 32),
+                      _FormSection(controller: controller),
+                      const SizedBox(height: 32),
+                      _SaveButton(controller: controller),
+                    ],
+                  ),
+                );
+              }),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -109,6 +116,7 @@ class _TopBar extends StatelessWidget {
 
 // ═══════════════════════════════════════════════════════════
 // AVATAR SECTION
+// Mendukung: local file preview, Supabase URL, atau initial huruf
 // ═══════════════════════════════════════════════════════════
 class _AvatarSection extends StatelessWidget {
   final EditProfileController controller;
@@ -120,33 +128,50 @@ class _AvatarSection extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryColor.withOpacity(0.15),
-              border: Border.all(color: AppColors.primaryColor, width: 2.5),
-            ),
-            // SOLUSI: Mengganti Obx dengan ValueListenableBuilder bawaan TextEditingController
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller.nameCtrl,
-              builder: (context, value, child) {
-                final name = value.text;
-                final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-                return Center(
-                  child: Text(
-                    initial,
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryColor,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          // Lingkaran avatar
+          Obx(() {
+            final localFile  = controller.localAvatar.value;
+            final remoteUrl  = controller.avatarUrl.value;
+            final nameText   = controller.nameCtrl.text;
+            final initial    = nameText.isNotEmpty ? nameText[0].toUpperCase() : 'U';
+
+            ImageProvider? imageProvider;
+            if (localFile != null) {
+              imageProvider = FileImage(localFile);
+            } else if (remoteUrl != null && remoteUrl.isNotEmpty) {
+              imageProvider = NetworkImage(remoteUrl);
+            }
+
+            return Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.primaryColor.withOpacity(0.15),
+                border: Border.all(color: AppColors.primaryColor, width: 2.5),
+                image: imageProvider != null
+                    ? DecorationImage(
+                        image: imageProvider,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: imageProvider == null
+                  ? Center(
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            );
+          }),
+
+          // Tombol kamera
           Positioned(
             bottom: -2,
             right: -2,
@@ -235,13 +260,11 @@ class _FormSection extends StatelessWidget {
             icon: Icons.location_on_outlined,
           ),
           _FieldDivider(),
-          // PERUBAHAN: Mengubah Website menjadi Sosial Media
           _InputField(
             label: 'Sosial Media',
             hint: '@username atau link profil',
-            controller: controller.websiteCtrl, // Tetap menggunakan controller yang sama agar tidak break sebelum file controller diupdate
+            controller: controller.websiteCtrl,
             icon: Icons.alternate_email_rounded,
-            keyboardType: TextInputType.text,
           ),
         ]),
         const SizedBox(height: 24),
@@ -384,23 +407,19 @@ class _GenderPicker extends StatelessWidget {
 // ═══════════════════════════════════════════════════════════
 // SHARED SMALL WIDGETS
 // ═══════════════════════════════════════════════════════════
-
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.white54,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.0,
-        ),
+    return Text(
+      text,
+      style: TextStyle(
+        color: Colors.white.withOpacity(0.4),
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.2,
       ),
     );
   }
@@ -428,8 +447,9 @@ class _FieldDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Divider(
       height: 1,
-      color: Colors.white.withOpacity(0.07),
-      indent: 52,
+      color: Colors.white.withOpacity(0.06),
+      indent: 16,
+      endIndent: 16,
     );
   }
 }
@@ -439,18 +459,18 @@ class _InputField extends StatelessWidget {
   final String hint;
   final TextEditingController controller;
   final IconData icon;
-  final TextInputType keyboardType;
-  final TextCapitalization textCapitalization;
+  final TextInputType? keyboardType;
   final int maxLines;
+  final TextCapitalization textCapitalization;
 
   const _InputField({
     required this.label,
     required this.hint,
     required this.controller,
     required this.icon,
-    this.keyboardType = TextInputType.text,
-    this.textCapitalization = TextCapitalization.none,
+    this.keyboardType,
     this.maxLines = 1,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -458,49 +478,45 @@ class _InputField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: SizedBox(
-              width: 36,
-              child: Icon(icon, color: AppColors.primaryColor, size: 20),
-            ),
-          ),
+          Icon(icon, color: AppColors.primaryColor, size: 18),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: AppColors.white54,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.3,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.45),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
                 ),
                 TextField(
                   controller: controller,
                   keyboardType: keyboardType,
-                  textCapitalization: textCapitalization,
                   maxLines: maxLines,
+                  textCapitalization: textCapitalization,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
-                    height: 1.4,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                   ),
-                  cursorColor: AppColors.primaryColor,
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(
-                        color: AppColors.white54, fontSize: 14),
+                    hintStyle: TextStyle(
+                      color: Colors.white.withOpacity(0.25),
+                      fontSize: 14,
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.only(bottom: 10),
                     isDense: true,
                   ),
+                  cursorColor: AppColors.primaryColor,
                 ),
               ],
             ),

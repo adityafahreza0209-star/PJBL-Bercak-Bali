@@ -1,8 +1,15 @@
+// lib/app/widgets/custom_navbar.dart
+//
+// Perubahan:
+//  • Tab "Simpan" → cek login dulu, jika belum → redirect ke Login
+//  • Tab "Profil" → cek login dulu, jika belum → redirect ke Login
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'theme_constants.dart';
 import 'navigation_controller.dart';
 import '../../app/routes/app_pages.dart';
+import '../../app/services/auth_service.dart';
 
 class CustomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -11,7 +18,6 @@ class CustomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Pastikan NavigationController tersedia
     if (!Get.isRegistered<NavigationController>()) {
       Get.put(NavigationController());
     }
@@ -65,6 +71,13 @@ class CustomNavBar extends StatelessWidget {
             label: 'Simpan',
             isActive: selectedIndex == 2,
             onTap: () {
+              // ── Auth guard: Simpan wajib login ──
+              if (!AuthService.to.isLoggedIn.value) {
+                AuthService.to.requireLogin(
+                  message: 'Login terlebih dahulu untuk melihat simpanan.',
+                );
+                return;
+              }
               if (selectedIndex != 2) {
                 navController.changeTo(2);
                 Get.offAllNamed(Routes.SIMPAN);
@@ -77,6 +90,13 @@ class CustomNavBar extends StatelessWidget {
             label: 'Profil',
             isActive: selectedIndex == 3,
             onTap: () {
+              // ── Auth guard: Profil wajib login ──
+              if (!AuthService.to.isLoggedIn.value) {
+                AuthService.to.requireLogin(
+                  message: 'Login terlebih dahulu untuk melihat profil.',
+                );
+                return;
+              }
               if (selectedIndex != 3) {
                 navController.changeTo(3);
                 Get.offAllNamed(Routes.PROFILE);

@@ -29,8 +29,7 @@ class RegisterView extends GetView<RegisterController> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: SingleChildScrollView(
-              keyboardDismissBehavior:
-                  ScrollViewKeyboardDismissBehavior.onDrag,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -54,32 +53,48 @@ class RegisterView extends GetView<RegisterController> {
                     icon: Icons.email_outlined,
                     hint: 'Email',
                     ctrl: controller.emailController,
+                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 20),
                   Obx(() => _passwordField()),
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  const SizedBox(height: 20),
+                  Obx(() => _confirmPasswordField()),
+                  // Tombol Daftar
+                  Obx(
+                    () => SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
-                      ),
-                      onPressed: controller.onRegister,
-                      child: const Text(
-                        'Daftar',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : controller.onRegister,
+                        child: controller.isLoading.value
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Daftar',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
                   Center(
                     child: Text(
                       'Atau daftar dengan',
@@ -90,15 +105,30 @@ class RegisterView extends GetView<RegisterController> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _socialButton('X'),
-                      const SizedBox(width: 16),
-                      _socialButton('G'),
-                      const SizedBox(width: 16),
-                      _socialButton('f'),
-                    ],
+                  // ── Tombol Google ──────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.onRegisterWithGoogle,
+                      icon: _googleLogo(),
+                      label: const Text(
+                        'Lanjutkan dengan Google',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Center(
@@ -139,9 +169,11 @@ class RegisterView extends GetView<RegisterController> {
     required IconData icon,
     required String hint,
     TextEditingController? ctrl,
+    TextInputType? keyboardType,
   }) {
     return TextField(
       controller: ctrl,
+      keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: _primaryColor),
@@ -185,21 +217,51 @@ class RegisterView extends GetView<RegisterController> {
     );
   }
 
-  Widget _socialButton(String text) {
-    return Container(
-      width: 70,
-      height: 55,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(22),
+  Widget _confirmPasswordField() {
+    return TextField(
+      controller: controller.confirmPasswordController,
+      obscureText: controller.isPasswordObscured.value,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.lock_outline, color: _primaryColor), // Diubah warnanya
+        suffixIcon: IconButton(
+          icon: Icon(
+            controller.isPasswordObscured.value
+                ? Icons.visibility_off
+                : Icons.visibility,
+            color: _primaryColor, // Diubah warnanya
+          ),
+          onPressed: controller.togglePasswordVisibility,
+        ),
+        hintText: 'Ulangi password',
+        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)), // Diubah hintStyle-nya
+        enabledBorder: const UnderlineInputBorder( // Diubah dari OutlineInputBorder ke UnderlineInputBorder
+          borderSide: BorderSide(color: Colors.white30),
+        ),
+        focusedBorder: const UnderlineInputBorder( // Diubah dari OutlineInputBorder ke UnderlineInputBorder
+          borderSide: BorderSide(color: _primaryColor),
+        ),
+        // Menghapus filled dan fillColor untuk konsistensi
       ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 24,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+    );
+  }
+
+  Widget _googleLogo() {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: const Center(
+        child: Text(
+          'G',
+          style: TextStyle(
+            color: Color(0xFF4285F4),
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
       ),
     );

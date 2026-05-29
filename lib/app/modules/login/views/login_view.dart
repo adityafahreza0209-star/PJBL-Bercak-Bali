@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/login_controller.dart';
-
+ 
 class LoginView extends GetView<LoginController> {
   const LoginView({super.key});
-
+ 
   static const Color _primaryColor = Color(0xFFD8A15D);
   static const Color _bgOverlay = Color(0xFF173232);
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,31 +48,45 @@ class LoginView extends GetView<LoginController> {
                   _inputField(
                     icon: Icons.email_outlined,
                     hint: 'Masukkan email',
-                    controller: controller.emailController,
+                    ctrl: controller.emailController,
+                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 20),
                   // Password
                   Obx(() => _passwordField()),
                   const SizedBox(height: 28),
                   // Login Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  Obx(
+                    () => SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
-                      ),
-                      onPressed: controller.onLogin,
-                      child: const Text(
-                        'Masuk',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : controller.onLogin,
+                        child: controller.isLoading.value
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.black,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Masuk',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -97,15 +111,32 @@ class LoginView extends GetView<LoginController> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _socialButton('X'),
-                      const SizedBox(width: 16),
-                      _socialButton('G'),
-                      const SizedBox(width: 16),
-                      _socialButton('f'),
-                    ],
+                  // ── Tombol Google ──────────────────────────────────
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.onLoginWithGoogle,
+                      icon: _googleLogo(),
+                      label: const Text(
+                        'Lanjutkan dengan Google',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 28),
                   // Daftar link
@@ -122,9 +153,9 @@ class LoginView extends GetView<LoginController> {
                                 fontSize: 15,
                               ),
                             ),
-                            TextSpan(
+                            const TextSpan(
                               text: 'Daftar sekarang',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: _primaryColor,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
@@ -144,14 +175,16 @@ class LoginView extends GetView<LoginController> {
       ),
     );
   }
-
+ 
   Widget _inputField({
     required IconData icon,
     required String hint,
-    TextEditingController? controller,
+    TextEditingController? ctrl,
+    TextInputType? keyboardType,
   }) {
     return TextField(
-      controller: controller,
+      controller: ctrl,
+      keyboardType: keyboardType,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: _primaryColor),
@@ -166,7 +199,7 @@ class LoginView extends GetView<LoginController> {
       ),
     );
   }
-
+ 
   Widget _passwordField() {
     return TextField(
       controller: controller.passwordController,
@@ -194,22 +227,24 @@ class LoginView extends GetView<LoginController> {
       ),
     );
   }
-
-  Widget _socialButton(String text) {
+ 
+  /// Logo Google sederhana dari teks berwarna
+  Widget _googleLogo() {
     return Container(
-      width: 70,
-      height: 55,
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(22),
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
       ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 24,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
+      child: const Center(
+        child: Text(
+          'G',
+          style: TextStyle(
+            color: Color(0xFF4285F4),
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
       ),
     );

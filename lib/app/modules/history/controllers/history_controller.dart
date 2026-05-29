@@ -1,93 +1,138 @@
-import 'package:get/get.dart';
-import '../../../../app/routes/app_pages.dart';
-import '../../../widgets/theme_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../../routes/app_pages.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/history_service.dart';
+import '../../../widgets/theme_constants.dart';
 
 class HistoryController extends GetxController {
-  final historyItems = <Map<String, dynamic>>[
-    {
-      'image': 'assets/images/tegalalang.jpg',
-      'title': 'Tegalalang Rice Terrace',
-      'location': 'Gianyar, Bali',
-      'rating': '4.7',
-      'visitDate': '12 Februari 2026',
-      'category': 'Alam',
-    },
-    {
-      'image': 'assets/images/uluwatu.jpg',
-      'title': 'Pura Uluwatu',
-      'location': 'Badung, Bali',
-      'rating': '4.8',
-      'visitDate': '5 Februari 2026',
-      'category': 'Budaya',
-    },
-    {
-      'image': 'assets/images/kelingking.jpg',
-      'title': 'Pantai Kelingking',
-      'location': 'Nusa Penida, Bali',
-      'rating': '4.9',
-      'visitDate': '28 Januari 2026',
-      'category': 'Pantai',
-    },
-    {
-      'image': 'assets/images/restoran1.jpg',
-      'title': 'Warung Babi Guling Ibu Oka',
-      'location': 'Ubud, Bali',
-      'rating': '4.8',
-      'visitDate': '20 Januari 2026',
-      'category': 'Restoran',
-    },
-  ].obs;
+  // ── State ────────────────────────────────────────────────────
+  final isLoading = true.obs;
+  final isClearing = false.obs;
+  final errorMessage = RxnString();
+  final historyItems = <VisitHistoryItem>[].obs;
 
-  void goBack() => Get.back();
+  final _service = HistoryService();
 
-  void goToDetailWisata(Map<String, dynamic> item) {
-    final data = {
-      'title': item['title'],
-      'location': item['location'],
-      'detailImages': const [
-        'assets/images/tegalalang.jpg',
-        'assets/images/uluwatu.jpg',
-        'assets/images/tanahlot.jpg',
-      ],
-    };
-    // Get.toNamed: bisa back ke History
-    Get.toNamed(Routes.DETAIL_WISATA, arguments: data);
+  @override
+  void onInit() {
+    super.onInit();
+    fetchHistory();
   }
+
+  // ── FETCH ─────────────────────────────────────────────────────
+
+  Future<void> fetchHistory() async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = null;
+
+      final data =
+          await _service.fetchHistory(AuthService.to.userId);
+      historyItems.assignAll(data);
+    } catch (_) {
+      errorMessage.value = 'Gagal memuat riwayat. Coba lagi.';
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> refresh() => fetchHistory();
+
+  // ── HAPUS SATU ITEM (swipe) ───────────────────────────────────
+
+  Future<void> deleteItem(VisitHistoryItem item) async {
+    // Optimistic remove
+    historyItems.remove(item);
+    try {
+      await _service.deleteItem(item.id);
+    } catch (_) {
+      // Rollback jika gagal
+      historyItems.add(item);
+      historyItems.sort(
+          (a, b) => b.visitedAt.compareTo(a.visitedAt));
+      Get.snackbar('Gagal', 'Tidak bisa menghapus item. Coba lagi.',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    }
+  }
+
+  // ── HAPUS SEMUA ───────────────────────────────────────────────
 
   void showClearDialog() {
     Get.dialog(
       AlertDialog(
         backgroundColor: AppColors.cardColor,
-        title: const Text('Hapus Riwayat',
-            style: TextStyle(color: Colors.white)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Hapus Riwayat',
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: const Text(
-            'Apakah Anda yakin ingin menghapus semua riwayat kunjungan?',
-            style: TextStyle(color: AppColors.white70)),
+          'Semua riwayat kunjungan akan dihapus. Tindakan ini tidak bisa dibatalkan.',
+          style: TextStyle(color: AppColors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: const Text('Batal',
-                style: TextStyle(color: AppColors.white70)),
+                style: TextStyle(color: AppColors.white54)),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
+          TextButton(
             onPressed: () {
               Get.back();
-              historyItems.clear();
-              Get.snackbar(
-                'Berhasil',
-                'Riwayat berhasil dihapus',
-                backgroundColor: AppColors.primaryColor,
-                colorText: Colors.white,
-                snackPosition: SnackPosition.BOTTOM,
-              );
+              _clearAll();
             },
-            child: const Text('Hapus'),
+            child: const Text(
+              'Hapus Semua',
+              style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _clearAll() async {
+    final backup = List<VisitHistoryItem>.from(historyItems);
+    historyItems.clear(); // optimistic
+    try {
+      isClearing.value = true;
+      await _service.clearAll(AuthService.to.userId);
+      Get.snackbar(
+        'Berhasil',
+        'Riwayat berhasil dihapus.',
+        backgroundColor: AppColors.primaryColor,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (_) {
+      historyItems.assignAll(backup); // rollback
+      Get.snackbar('Gagal', 'Tidak bisa menghapus riwayat. Coba lagi.',
+          backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      isClearing.value = false;
+    }
+  }
+
+  // ── NAVIGASI ─────────────────────────────────────────────────
+
+  void goBack() => Get.back();
+
+  void goToDetail(VisitHistoryItem item) {
+    if (item.isWisata) {
+      Get.toNamed(
+        Routes.DETAIL_WISATA,
+        arguments: {'wisataId': item.placeId},
+      );
+    } else {
+      Get.toNamed(
+        Routes.DETAIL_RESTORAN,
+        arguments: {'restaurantId': item.placeId},
+      );
+    }
   }
 }
