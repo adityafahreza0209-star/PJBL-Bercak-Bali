@@ -14,6 +14,12 @@ String buildStorageUrl(String path) {
   return '$_supabaseUrl/storage/v1/object/public/$_storageBucket/$path';
 }
 
+String? _nullableString(dynamic value) {
+  final text = value as String?;
+  final trimmed = text?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
 // ============================================================
 // MODEL: CityModel
 // ============================================================
@@ -47,12 +53,12 @@ class CityModel {
 
   /// Argumen yang dikirim ke DestinationCityView via Get.toNamed
   Map<String, dynamic> toArguments() => {
-        'cityId': id,
-        'cityName': cityName,
-        'region': region,
-        'description': description,
-        'imageUrl': imageUrl,
-      };
+    'cityId': id,
+    'cityName': cityName,
+    'region': region,
+    'description': description,
+    'imageUrl': imageUrl,
+  };
 }
 
 // ============================================================
@@ -69,11 +75,10 @@ class WisataModel {
   final String ticketPrice;
   final String openHours;
   final String duration;
-  final double? latitude;
-  final double? longitude;
+  final String? googleMapsUrl;
   final double rating;
   final int totalReviews;
-  final String imageUrl;   // cover image, sudah full URL
+  final String imageUrl; // cover image, sudah full URL
   final List<String> images; // semua gambar (cover + place_images)
   final bool isFeatured;
 
@@ -87,8 +92,7 @@ class WisataModel {
     required this.ticketPrice,
     required this.openHours,
     required this.duration,
-    this.latitude,
-    this.longitude,
+    this.googleMapsUrl,
     required this.rating,
     required this.totalReviews,
     required this.imageUrl,
@@ -124,8 +128,7 @@ class WisataModel {
       ticketPrice: map['ticket_price'] as String? ?? '',
       openHours: map['open_hours'] as String? ?? '',
       duration: map['duration'] as String? ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
+      googleMapsUrl: _nullableString(map['google_maps_url']),
       rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
       totalReviews: map['total_reviews'] as int? ?? 0,
       imageUrl: cover,
@@ -135,9 +138,7 @@ class WisataModel {
   }
 
   /// Argumen yang dikirim ke DetailWisataView via Get.toNamed
-  Map<String, dynamic> toArguments() => {
-        'wisataId': id,
-      };
+  Map<String, dynamic> toArguments() => {'wisataId': id};
 }
 
 // ============================================================
@@ -163,8 +164,7 @@ class WisataService {
     ticket_price,
     open_hours,
     duration,
-    latitude,
-    longitude,
+    google_maps_url,
     rating,
     total_reviews,
     image_url,

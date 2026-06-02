@@ -16,8 +16,7 @@ class RestaurantModel {
   final String priceRange;
   final String distance;
   final String phoneNumber;
-  final double? latitude;
-  final double? longitude;
+  final String? googleMapsUrl;
   final String? cityId;
   final String imageUrl;
   final List<String> images;
@@ -34,8 +33,7 @@ class RestaurantModel {
     required this.priceRange,
     required this.distance,
     required this.phoneNumber,
-    this.latitude,
-    this.longitude,
+    this.googleMapsUrl,
     this.cityId,
     required this.imageUrl,
     required this.images,
@@ -43,7 +41,7 @@ class RestaurantModel {
   });
 
   factory RestaurantModel.fromMap(Map<String, dynamic> map) {
-    const supabaseUrl = 'https://exsafhemjamjrieqdarn.supabase.co'; 
+    const supabaseUrl = 'https://exsafhemjamjrieqdarn.supabase.co';
 
     final rawImages = map['place_images'] as List<dynamic>? ?? [];
 
@@ -80,29 +78,35 @@ class RestaurantModel {
       priceRange: map['price_range'] as String? ?? '',
       distance: map['distance'] as String? ?? '',
       phoneNumber: map['phone_number'] as String? ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble(),
-      longitude: (map['longitude'] as num?)?.toDouble(),
+      googleMapsUrl: _nullableString(map['google_maps_url']),
       cityId: map['city_id'] as String?,
       imageUrl: cover,
-      images: allImages.isNotEmpty ? allImages : ['assets/images/restoran1.jpg'], 
+      images: allImages.isNotEmpty
+          ? allImages
+          : ['assets/images/restoran1.jpg'],
       isFeatured: map['is_featured'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toArguments() => {
-        'restaurantId': id,
-        'images': images,
-        'name': name,
-        'location': location,
-        'cuisine': cuisine,
-        'rating': rating.toStringAsFixed(1),
-        'priceRange': priceRange,
-        'distance': distance,
-        'description': description,
-        'phone': phoneNumber,
-        'latitude': latitude,
-        'longitude': longitude,
-      };
+    'restaurantId': id,
+    'images': images,
+    'name': name,
+    'location': location,
+    'cuisine': cuisine,
+    'rating': rating.toStringAsFixed(1),
+    'priceRange': priceRange,
+    'distance': distance,
+    'description': description,
+    'phone': phoneNumber,
+    'googleMapsUrl': googleMapsUrl,
+  };
+}
+
+String? _nullableString(dynamic value) {
+  final text = value as String?;
+  final trimmed = text?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
 class MenuItemModel {
@@ -121,12 +125,12 @@ class MenuItemModel {
   });
 
   factory MenuItemModel.fromMap(Map<String, dynamic> map) => MenuItemModel(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        price: map['price'] as String?,
-        category: map['category'] as String?,
-        isPopular: map['is_popular'] as bool? ?? false,
-      );
+    id: map['id'] as String,
+    name: map['name'] as String,
+    price: map['price'] as String?,
+    category: map['category'] as String?,
+    isPopular: map['is_popular'] as bool? ?? false,
+  );
 }
 
 // ============================================================
@@ -153,8 +157,7 @@ class RestaurantService {
     price_range,
     distance,
     phone_number,
-    latitude,
-    longitude,
+    google_maps_url,
     city_id,
     image_url,
     is_featured,
@@ -217,7 +220,7 @@ class RestaurantService {
         .select(_restaurantSelect)
         .eq('id', restaurantId)
         .maybeSingle();
- 
+
     return res != null ? RestaurantModel.fromMap(res) : null;
   }
 

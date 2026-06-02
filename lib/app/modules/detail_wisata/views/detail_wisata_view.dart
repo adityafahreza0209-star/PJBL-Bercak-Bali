@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/theme_constants.dart';
 import '../../../widgets/maps_helper.dart';
+import '../../../widgets/shimmer_skeleton.dart';
 import '../../../services/review_service.dart';
 import '../controllers/detail_wisata_controller.dart';
 import '../../../../app/routes/app_pages.dart';
@@ -17,10 +18,7 @@ class DetailWisataView extends GetView<DetailWisataController> {
     return Obx(() {
       // ── Loading state ──────────────────────────────────────
       if (controller.isLoading.value) {
-        return const Scaffold(
-          backgroundColor: AppColors.bgColor,
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const _DetailWisataSkeletonPage();
       }
 
       // ── Error state ────────────────────────────────────────
@@ -190,8 +188,11 @@ class _HeroImageCarousel extends StatelessWidget {
             fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => Container(
               color: AppColors.cardColor,
-              child: const Icon(Icons.image_not_supported,
-                  color: AppColors.white54, size: 64),
+              child: const Icon(
+                Icons.image_not_supported,
+                color: AppColors.white54,
+                size: 64,
+              ),
             ),
           ),
         ),
@@ -215,8 +216,10 @@ class _HeroImageCarousel extends StatelessWidget {
               bottom: 14,
               right: 16,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.55),
                   borderRadius: BorderRadius.circular(20),
@@ -284,7 +287,9 @@ class _InfoSliverSection extends StatelessWidget {
                 Text(
                   '(${controller.totalUlasan} ulasan)',
                   style: const TextStyle(
-                      color: AppColors.white54, fontSize: 13),
+                    color: AppColors.white54,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
@@ -294,14 +299,19 @@ class _InfoSliverSection extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on,
-                    color: AppColors.primaryColor, size: 16),
+                const Icon(
+                  Icons.location_on,
+                  color: AppColors.primaryColor,
+                  size: 16,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     controller.location,
                     style: const TextStyle(
-                        color: AppColors.white70, fontSize: 13),
+                      color: AppColors.white70,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -390,22 +400,25 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgColor,
-        border:
-            Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
       ),
       child: TabBar(
         labelColor: AppColors.primaryColor,
         unselectedLabelColor: AppColors.white54,
         indicatorColor: AppColors.primaryColor,
         indicatorWeight: 2.5,
-        labelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        unselectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.normal,
+          fontSize: 14,
+        ),
         tabs: tabs.map((t) => Tab(text: t)).toList(),
       ),
     );
@@ -430,7 +443,10 @@ class _InformasiTab extends StatelessWidget {
         Text(
           controller.description,
           style: const TextStyle(
-              color: AppColors.white70, fontSize: 14, height: 1.6),
+            color: AppColors.white70,
+            fontSize: 14,
+            height: 1.6,
+          ),
         ),
         const SizedBox(height: 24),
         _SectionLabel('Info Kunjungan'),
@@ -438,19 +454,22 @@ class _InformasiTab extends StatelessWidget {
         _InfoCard(
           children: [
             _InfoRow(
-                icon: Icons.access_time,
-                label: 'Jam Buka',
-                value: controller.openHours),
+              icon: Icons.access_time,
+              label: 'Jam Buka',
+              value: controller.openHours,
+            ),
             const SizedBox(height: 12),
             _InfoRow(
-                icon: Icons.confirmation_number_outlined,
-                label: 'Harga Tiket',
-                value: controller.ticketPrice),
+              icon: Icons.confirmation_number_outlined,
+              label: 'Harga Tiket',
+              value: controller.ticketPrice,
+            ),
             const SizedBox(height: 12),
             _InfoRow(
-                icon: Icons.timer_outlined,
-                label: 'Estimasi Durasi',
-                value: controller.duration),
+              icon: Icons.timer_outlined,
+              label: 'Estimasi Durasi',
+              value: controller.duration,
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -459,19 +478,22 @@ class _InformasiTab extends StatelessWidget {
         const _InfoCard(
           children: [
             _InfoRow(
-                icon: Icons.motorcycle,
-                label: 'Ojek Online',
-                value: '± Rp 20.000 dari pusat kota'),
+              icon: Icons.motorcycle,
+              label: 'Ojek Online',
+              value: '± Rp 20.000 dari pusat kota',
+            ),
             SizedBox(height: 12),
             _InfoRow(
-                icon: Icons.directions_car,
-                label: 'Mobil / Taksi',
-                value: 'Parkir tersedia di area wisata'),
+              icon: Icons.directions_car,
+              label: 'Mobil / Taksi',
+              value: 'Parkir tersedia di area wisata',
+            ),
             SizedBox(height: 12),
             _InfoRow(
-                icon: Icons.directions_bus,
-                label: 'Bus Umum',
-                value: 'Turun di terminal terdekat (2 km)'),
+              icon: Icons.directions_bus,
+              label: 'Bus Umum',
+              value: 'Turun di terminal terdekat (2 km)',
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -487,18 +509,18 @@ class _InformasiTab extends StatelessWidget {
             _FacilityChip(icon: Icons.camera_alt, label: 'Spot Foto'),
             _FacilityChip(icon: Icons.umbrella, label: 'Area Berteduh'),
             _FacilityChip(
-                icon: Icons.wheelchair_pickup, label: 'Akses Disabilitas'),
+              icon: Icons.wheelchair_pickup,
+              label: 'Akses Disabilitas',
+            ),
           ],
         ),
         const SizedBox(height: 24),
         _SectionLabel('Lokasi'),
         const SizedBox(height: 10),
-        GestureDetector(
+        MapsPreviewTile(
+          address: controller.location,
           onTap: controller.openGoogleMaps,
-          child: MapsPreviewTile(
-            location: controller.title,
-            address: controller.location,
-          ),
+          hasLink: controller.hasGoogleMapsUrl,
         ),
       ],
     );
@@ -523,6 +545,8 @@ class _UlasanTab extends StatelessWidget {
           _RatingSummaryCard(
             ratingValue: controller.rating,
             totalUlasan: controller.totalUlasan,
+            actualReviewCount: controller.actualReviewCount,
+            ratingCounts: controller.ratingCounts,
           ),
           const SizedBox(height: 20),
 
@@ -535,10 +559,7 @@ class _UlasanTab extends StatelessWidget {
 
           // ── Loading reviews ──────────────────────────────
           if (controller.isLoadingReviews.value)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const _ReviewSkeletonList()
           else if (controller.reviews.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
@@ -550,14 +571,16 @@ class _UlasanTab extends StatelessWidget {
               ),
             )
           else
-            ...controller.reviews.map((review) => Obx(
-                  () => _ReviewCard(
-                    review: review,
-                    isUseful: controller.userUseful[review.id] ?? false,
-                    usefulCount: controller.usefulCounts[review.id] ?? 0,
-                    onUsefulTap: () => controller.toggleUseful(review.id),
-                  ),
-                )),
+            ...controller.reviews.map(
+              (review) => Obx(
+                () => _ReviewCard(
+                  review: review,
+                  isUseful: controller.userUseful[review.id] ?? false,
+                  usefulCount: controller.usefulCounts[review.id] ?? 0,
+                  onUsefulTap: () => controller.toggleUseful(review.id),
+                ),
+              ),
+            ),
         ],
       );
     });
@@ -601,14 +624,12 @@ class _ReviewCard extends StatelessWidget {
               review.userAvatarUrl != null
                   ? CircleAvatar(
                       radius: 18,
-                      backgroundImage:
-                          NetworkImage(review.userAvatarUrl!),
+                      backgroundImage: NetworkImage(review.userAvatarUrl!),
                       backgroundColor: AppColors.cardColor,
                     )
                   : CircleAvatar(
                       radius: 18,
-                      backgroundColor:
-                          AppColors.primaryColor.withOpacity(0.85),
+                      backgroundColor: AppColors.primaryColor.withOpacity(0.85),
                       child: Text(
                         review.userName.isNotEmpty
                             ? review.userName[0].toUpperCase()
@@ -645,7 +666,9 @@ class _ReviewCard extends StatelessWidget {
                     Text(
                       review.dateFormatted,
                       style: const TextStyle(
-                          color: AppColors.white54, fontSize: 11),
+                        color: AppColors.white54,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -685,7 +708,10 @@ class _ReviewCard extends StatelessWidget {
             Text(
               review.comment,
               style: const TextStyle(
-                  color: AppColors.white70, fontSize: 13, height: 1.5),
+                color: AppColors.white70,
+                fontSize: 13,
+                height: 1.5,
+              ),
             ),
           ],
 
@@ -710,8 +736,10 @@ class _ReviewCard extends StatelessWidget {
                         width: 78,
                         height: 78,
                         color: AppColors.bgColor,
-                        child: const Icon(Icons.image_not_supported,
-                            color: AppColors.white54),
+                        child: const Icon(
+                          Icons.image_not_supported,
+                          color: AppColors.white54,
+                        ),
                       ),
                     ),
                   ),
@@ -726,8 +754,7 @@ class _ReviewCard extends StatelessWidget {
           GestureDetector(
             onTap: onUsefulTap,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: isUseful
                     ? AppColors.primaryColor.withOpacity(0.2)
@@ -779,29 +806,39 @@ class _ReviewCard extends StatelessWidget {
 class _RatingSummaryCard extends StatelessWidget {
   final String ratingValue;
   final int totalUlasan;
+  final int actualReviewCount;
+  final Map<int, int> ratingCounts;
   const _RatingSummaryCard({
     required this.ratingValue,
     required this.totalUlasan,
+    required this.actualReviewCount,
+    required this.ratingCounts,
   });
 
   @override
   Widget build(BuildContext context) {
     final r = double.tryParse(ratingValue) ?? 0;
 
-    // Hitung persentase per bintang (estimasi visual dari rating rata-rata)
     final bars = [
-      (star: '5', percent: r >= 4.5 ? 0.75 : r >= 4.0 ? 0.55 : 0.35),
-      (star: '4', percent: r >= 4.0 ? 0.15 : 0.20),
-      (star: '3', percent: 0.06),
-      (star: '2', percent: 0.03),
-      (star: '1', percent: 0.01),
+      for (var star = 5; star >= 1; star--)
+        (
+          star: star,
+          count: ratingCounts[star] ?? 0,
+          percent: actualReviewCount == 0
+              ? 0.0
+              : (ratingCounts[star] ?? 0) / actualReviewCount,
+        ),
     ];
 
     String label;
-    if (r >= 4.5) label = 'Luar Biasa';
-    else if (r >= 4.0) label = 'Sangat Bagus';
-    else if (r >= 3.0) label = 'Bagus';
-    else label = 'Biasa';
+    if (r >= 4.5)
+      label = 'Luar Biasa';
+    else if (r >= 4.0)
+      label = 'Sangat Bagus';
+    else if (r >= 3.0)
+      label = 'Bagus';
+    else
+      label = 'Biasa';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -836,14 +873,14 @@ class _RatingSummaryCard extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 '$totalUlasan ulasan',
-                style: const TextStyle(
-                    color: AppColors.white54, fontSize: 11),
+                style: const TextStyle(color: AppColors.white54, fontSize: 11),
               ),
             ],
           ),
@@ -861,7 +898,9 @@ class _RatingSummaryCard extends StatelessWidget {
                             child: Text(
                               '${b.star} ★',
                               style: const TextStyle(
-                                  color: AppColors.white54, fontSize: 11),
+                                color: AppColors.white54,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -873,6 +912,18 @@ class _RatingSummaryCard extends StatelessWidget {
                                 backgroundColor: Colors.white12,
                                 color: AppColors.ratingColor,
                                 minHeight: 7,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${b.count}',
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(
+                                color: AppColors.white54,
+                                fontSize: 11,
                               ),
                             ),
                           ),
@@ -917,9 +968,10 @@ class _WriteReviewButton extends StatelessWidget {
             Text(
               'Tulis Ulasan',
               style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
             ),
           ],
         ),
@@ -943,7 +995,10 @@ class _RatingBadge extends StatelessWidget {
       child: Text(
         rating,
         style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
       ),
     );
   }
@@ -961,14 +1016,17 @@ class _CategoryBadge extends StatelessWidget {
         color: AppColors.primaryColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: AppColors.primaryColor.withOpacity(0.35), width: 1),
+          color: AppColors.primaryColor.withOpacity(0.35),
+          width: 1,
+        ),
       ),
       child: Text(
         label,
         style: const TextStyle(
-            color: AppColors.primaryColor,
-            fontSize: 11,
-            fontWeight: FontWeight.w600),
+          color: AppColors.primaryColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -1038,10 +1096,11 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.2),
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.2,
+      ),
     );
   }
 }
@@ -1095,16 +1154,18 @@ class _InfoRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(
-                      color: AppColors.white54, fontSize: 11)),
+              Text(
+                label,
+                style: const TextStyle(color: AppColors.white54, fontSize: 11),
+              ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500),
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
           ),
@@ -1127,16 +1188,277 @@ class _FacilityChip extends StatelessWidget {
         color: AppColors.cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color: AppColors.primaryColor.withOpacity(0.3), width: 1),
+          color: AppColors.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: AppColors.primaryColor),
           const SizedBox(width: 6),
-          Text(label,
-              style:
-                  const TextStyle(color: AppColors.white70, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailWisataSkeletonPage extends StatelessWidget {
+  const _DetailWisataSkeletonPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: AppColors.bgColor,
+      body: CustomScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        slivers: [
+          _DetailSkeletonHero(),
+          _DetailSkeletonInfo(),
+          _DetailSkeletonActions(actionCount: 3),
+          _DetailSkeletonTabBar(tabCount: 2),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerBox(width: 130, height: 18, borderRadius: 6),
+                  SizedBox(height: 12),
+                  _DetailInfoCardSkeleton(),
+                  SizedBox(height: 20),
+                  ShimmerBox(width: 90, height: 18, borderRadius: 6),
+                  SizedBox(height: 12),
+                  _DetailInfoCardSkeleton(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailSkeletonHero extends StatelessWidget {
+  const _DetailSkeletonHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Stack(
+        children: [
+          const ShimmerBox(height: _kHeroHeight, borderRadius: 0),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 12,
+            child: const ShimmerBox(width: 38, height: 38, borderRadius: 19),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 58,
+            child: const ShimmerBox(width: 38, height: 38, borderRadius: 19),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 12,
+            child: const ShimmerBox(width: 38, height: 38, borderRadius: 19),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailSkeletonInfo extends StatelessWidget {
+  const _DetailSkeletonInfo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Container(
+        color: AppColors.bgColor,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ShimmerBox(
+              width: double.infinity,
+              height: 26,
+              borderRadius: 6,
+            ),
+            const SizedBox(height: 10),
+            const ShimmerBox(width: 220, height: 20, borderRadius: 6),
+            const SizedBox(height: 12),
+            Row(
+              children: const [
+                ShimmerBox(width: 42, height: 26, borderRadius: 6),
+                SizedBox(width: 8),
+                ShimmerBox(width: 96, height: 16, borderRadius: 6),
+                SizedBox(width: 8),
+                ShimmerBox(width: 74, height: 14, borderRadius: 6),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const ShimmerBox(width: 104, height: 24, borderRadius: 20),
+            const SizedBox(height: 12),
+            const ShimmerBox(
+              width: double.infinity,
+              height: 14,
+              borderRadius: 6,
+            ),
+            const SizedBox(height: 16),
+            Divider(color: Colors.white.withOpacity(0.08), height: 1),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSkeletonActions extends StatelessWidget {
+  final int actionCount;
+  const _DetailSkeletonActions({required this.actionCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Container(
+        color: AppColors.bgColor,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(
+            actionCount,
+            (_) => const Column(
+              children: [
+                ShimmerBox(width: 52, height: 52, borderRadius: 26),
+                SizedBox(height: 8),
+                ShimmerBox(width: 46, height: 11, borderRadius: 6),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSkeletonTabBar extends StatelessWidget {
+  final int tabCount;
+  const _DetailSkeletonTabBar({required this.tabCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Container(
+        height: _kTabBarHeight,
+        decoration: BoxDecoration(
+          color: AppColors.bgColor,
+          border: Border(
+            top: BorderSide(color: Colors.white.withOpacity(0.06)),
+          ),
+        ),
+        child: Row(
+          children: List.generate(
+            tabCount,
+            (_) => const Expanded(
+              child: Center(
+                child: ShimmerBox(width: 82, height: 14, borderRadius: 6),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailInfoCardSkeleton extends StatelessWidget {
+  const _DetailInfoCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShimmerBox(width: double.infinity, height: 14, borderRadius: 6),
+          SizedBox(height: 10),
+          ShimmerBox(width: double.infinity, height: 14, borderRadius: 6),
+          SizedBox(height: 10),
+          ShimmerBox(width: 180, height: 14, borderRadius: 6),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReviewSkeletonList extends StatelessWidget {
+  const _ReviewSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        _ReviewSkeletonCard(),
+        _ReviewSkeletonCard(),
+        _ReviewSkeletonCard(),
+      ],
+    );
+  }
+}
+
+class _ReviewSkeletonCard extends StatelessWidget {
+  const _ReviewSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ShimmerBox(width: 36, height: 36, borderRadius: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ShimmerBox(width: 120, height: 14, borderRadius: 6),
+                    SizedBox(height: 6),
+                    ShimmerBox(width: 84, height: 11, borderRadius: 6),
+                  ],
+                ),
+              ),
+              ShimmerBox(width: 74, height: 13, borderRadius: 6),
+            ],
+          ),
+          SizedBox(height: 14),
+          ShimmerBox(width: double.infinity, height: 13, borderRadius: 6),
+          SizedBox(height: 8),
+          ShimmerBox(width: double.infinity, height: 13, borderRadius: 6),
+          SizedBox(height: 8),
+          ShimmerBox(width: 190, height: 13, borderRadius: 6),
+          SizedBox(height: 14),
+          ShimmerBox(width: 88, height: 28, borderRadius: 20),
         ],
       ),
     );

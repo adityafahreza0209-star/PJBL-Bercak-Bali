@@ -14,6 +14,21 @@ class HistoryController extends GetxController {
 
   final _service = HistoryService();
 
+  List<VisitHistoryItem> get visibleHistoryItems {
+    final seen = <String>{};
+    final visible = <VisitHistoryItem>[];
+
+    for (final item in historyItems) {
+      final key =
+          '${item.placeType}:${item.placeId}:${item.visitedAt.year}:${item.visitedAt.month}';
+      if (seen.add(key)) {
+        visible.add(item);
+      }
+    }
+
+    return visible;
+  }
+
   @override
   void onInit() {
     super.onInit();

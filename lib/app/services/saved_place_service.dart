@@ -4,7 +4,7 @@ import '../services/restaurant_service.dart';
 
 /// Model ringan untuk satu item tersimpan dari tabel saved_places.
 class SavedPlaceItem {
-  final String savedId;   // id di tabel saved_places
+  final String savedId; // id di tabel saved_places
   final String placeType; // 'wisata' | 'restoran'
   final DateTime savedAt;
   final WisataModel? wisata;
@@ -57,7 +57,7 @@ class SavedPlaceService {
           wisata (
             id, city_id, title, location, category, description,
             ticket_price, open_hours, duration,
-            latitude, longitude, rating, total_reviews,
+            google_maps_url, rating, total_reviews,
             image_url, is_featured
           )
         ''')
@@ -67,14 +67,16 @@ class SavedPlaceService {
 
     return rows
         .where((row) => row['wisata'] != null)
-        .map((row) => SavedPlaceItem(
-              savedId: row['id'] as String,
-              placeType: 'wisata',
-              savedAt: DateTime.parse(row['created_at'] as String),
-              wisata: WisataModel.fromMap(
-                Map<String, dynamic>.from(row['wisata'] as Map),
-              ),
-            ))
+        .map(
+          (row) => SavedPlaceItem(
+            savedId: row['id'] as String,
+            placeType: 'wisata',
+            savedAt: DateTime.parse(row['created_at'] as String),
+            wisata: WisataModel.fromMap(
+              Map<String, dynamic>.from(row['wisata'] as Map),
+            ),
+          ),
+        )
         .toList();
   }
 
@@ -87,7 +89,7 @@ class SavedPlaceService {
           restaurants (
             id, city_id, name, location, cuisine, description,
             price_range, distance, phone_number,
-            latitude, longitude, rating, total_reviews,
+            google_maps_url, rating, total_reviews,
             image_url, is_featured
           )
         ''')
@@ -97,14 +99,16 @@ class SavedPlaceService {
 
     return rows
         .where((row) => row['restaurants'] != null)
-        .map((row) => SavedPlaceItem(
-              savedId: row['id'] as String,
-              placeType: 'restoran',
-              savedAt: DateTime.parse(row['created_at'] as String),
-              restaurant: RestaurantModel.fromMap(
-                Map<String, dynamic>.from(row['restaurants'] as Map),
-              ),
-            ))
+        .map(
+          (row) => SavedPlaceItem(
+            savedId: row['id'] as String,
+            placeType: 'restoran',
+            savedAt: DateTime.parse(row['created_at'] as String),
+            restaurant: RestaurantModel.fromMap(
+              Map<String, dynamic>.from(row['restaurants'] as Map),
+            ),
+          ),
+        )
         .toList();
   }
 

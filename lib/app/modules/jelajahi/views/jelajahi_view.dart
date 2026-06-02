@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/theme_constants.dart';
 import '../../../widgets/custom_navbar.dart';
+import '../../../widgets/shimmer_skeleton.dart';
 import '../controllers/jelajahi_controller.dart';
 import '../../../services/wisata_service.dart';
 import '../../../services/restaurant_service.dart';
@@ -74,10 +75,17 @@ class _SearchAppBar extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'Cari destinasi atau restoran...',
                       hintStyle: const TextStyle(color: AppColors.white54),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.white54),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.white54,
+                      ),
                       suffixIcon: hasText
                           ? IconButton(
-                              icon: const Icon(Icons.close, color: AppColors.white54, size: 20),
+                              icon: const Icon(
+                                Icons.close,
+                                color: AppColors.white54,
+                                size: 20,
+                              ),
                               onPressed: controller.clearSearch,
                             )
                           : null,
@@ -217,11 +225,7 @@ class _Body extends StatelessWidget {
     return Obx(() {
       // Loading state
       if (controller.isLoading.value) {
-        return const SliverFillRemaining(
-          child: Center(
-            child: CircularProgressIndicator(color: AppColors.primaryColor),
-          ),
-        );
+        return const _ExploreSkeletonSliver();
       }
 
       // Error state
@@ -287,7 +291,9 @@ class _Body extends StatelessWidget {
     if (tab == JelajahiTab.semua || tab == JelajahiTab.restoran) {
       if (restaurants.isNotEmpty) {
         if (tab == JelajahiTab.semua) {
-          items.add(_SectionHeader(title: 'Restoran', count: restaurants.length));
+          items.add(
+            _SectionHeader(title: 'Restoran', count: restaurants.length),
+          );
         }
         items.addAll(
           restaurants.map(
@@ -474,21 +480,16 @@ class _CardImage extends StatelessWidget {
             height: 200,
             color: AppColors.bgColor,
             child: const Center(
-              child: Icon(Icons.image_not_supported, color: AppColors.white54, size: 48),
+              child: Icon(
+                Icons.image_not_supported,
+                color: AppColors.white54,
+                size: 48,
+              ),
             ),
           ),
           loadingBuilder: (_, child, loadingProgress) {
             if (loadingProgress == null) return child;
-            return Container(
-              height: 200,
-              color: AppColors.bgColor,
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.primaryColor,
-                  strokeWidth: 2,
-                ),
-              ),
-            );
+            return const ShimmerBox(height: 200, borderRadius: 0);
           },
         ),
         // Badge rating
@@ -719,10 +720,97 @@ class _ErrorView extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryColor,
                 foregroundColor: AppColors.bgColor,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExploreSkeletonSliver extends StatelessWidget {
+  const _ExploreSkeletonSliver();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.only(top: 4),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (_, _) => const _PlaceCardSkeleton(),
+          childCount: 4,
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceCardSkeleton extends StatelessWidget {
+  const _PlaceCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: const ClipRRect(
+        borderRadius: BorderRadius.all(Radius.circular(20)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ShimmerBox(height: 200, borderRadius: 0),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: ShimmerBox(width: 58, height: 30, borderRadius: 20),
+                ),
+              ],
+            ),
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerBox(width: 220, height: 18, borderRadius: 6),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      ShimmerBox(width: 26, height: 26, borderRadius: 8),
+                      SizedBox(width: 8),
+                      Expanded(child: ShimmerBox(height: 13, borderRadius: 6)),
+                      SizedBox(width: 12),
+                      ShimmerBox(width: 74, height: 13, borderRadius: 6),
+                    ],
+                  ),
+                  SizedBox(height: 14),
+                  Row(
+                    children: [
+                      ShimmerBox(width: 96, height: 24, borderRadius: 20),
+                      SizedBox(width: 8),
+                      ShimmerBox(width: 72, height: 24, borderRadius: 20),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

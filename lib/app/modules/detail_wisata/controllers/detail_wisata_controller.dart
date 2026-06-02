@@ -22,8 +22,8 @@ class DetailWisataController extends GetxController {
   String get duration => _wisata?.duration ?? '';
   String get rating => _wisata?.rating.toStringAsFixed(1) ?? '0.0';
   int get totalUlasan => _wisata?.totalReviews ?? 0;
-  double get latitude => _wisata?.latitude ?? 0.0;
-  double get longitude => _wisata?.longitude ?? 0.0;
+  String? get googleMapsUrl => _wisata?.googleMapsUrl;
+  bool get hasGoogleMapsUrl => googleMapsUrl?.isNotEmpty == true;
   List<String> get images => _wisata?.images ?? [];
 
   // ── State carousel gambar ─────────────────────────────────────
@@ -35,6 +35,18 @@ class DetailWisataController extends GetxController {
   // ── State reviews ─────────────────────────────────────────────
   final reviews = <ReviewModel>[].obs;
   final isLoadingReviews = false.obs;
+
+  Map<int, int> get ratingCounts {
+    final counts = {for (var star = 1; star <= 5; star++) star: 0};
+    for (final review in reviews) {
+      if (counts.containsKey(review.rating)) {
+        counts[review.rating] = counts[review.rating]! + 1;
+      }
+    }
+    return counts;
+  }
+
+  int get actualReviewCount => reviews.length;
 
   // ── State tombol "Berguna" per review ─────────────────────────
   final usefulCounts = <String, int>{}.obs;
@@ -62,10 +74,7 @@ class DetailWisataController extends GetxController {
   // ── FETCH ─────────────────────────────────────────────────────
 
   Future<void> _fetchAll() async {
-    await Future.wait([
-      _fetchWisataDetail(),
-      _fetchReviews(),
-    ]);
+    await Future.wait([_fetchWisataDetail(), _fetchReviews()]);
   }
 
   Future<void> _fetchWisataDetail() async {
@@ -87,10 +96,7 @@ class DetailWisataController extends GetxController {
           wisataId: _wisataId,
           userId: userId,
         );
-        await _wisataService.recordVisit(
-          wisataId: _wisataId,
-          userId: userId,
-        );
+        await _wisataService.recordVisit(wisataId: _wisataId, userId: userId);
       }
     } catch (_) {
       errorMessage.value = 'Gagal memuat data wisata. Coba lagi.';
@@ -138,7 +144,8 @@ class DetailWisataController extends GetxController {
   Future<void> toggleFavorite() async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menyimpan wisata.');
+        message: 'Login terlebih dahulu untuk menyimpan wisata.',
+      );
       return;
     }
 
@@ -162,7 +169,8 @@ class DetailWisataController extends GetxController {
   Future<void> toggleUseful(String reviewId) async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menandai ulasan berguna.');
+        message: 'Login terlebih dahulu untuk menandai ulasan berguna.',
+      );
       return;
     }
 
@@ -191,7 +199,8 @@ class DetailWisataController extends GetxController {
   Future<void> goToWriteReview() async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menulis ulasan.');
+        message: 'Login terlebih dahulu untuk menulis ulasan.',
+      );
       return;
     }
 
@@ -213,19 +222,27 @@ class DetailWisataController extends GetxController {
   void onPageChanged(int index) => currentImage.value = index;
 
   Future<void> openGoogleMaps() async {
-    final lat = latitude;
-    final lng = longitude;
+    final link = googleMapsUrl;
 
-    if (lat == 0.0 && lng == 0.0) {
-      Get.snackbar('Info', 'Koordinat lokasi belum tersedia.');
+    if (link == null || link.trim().isEmpty) {
+      Get.snackbar('Info', 'Link lokasi belum tersedia');
       return;
     }
 
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final url = Uri.tryParse(link.trim());
+    if (url == null ||
+        !url.isAbsolute ||
+        url.host.isEmpty ||
+        (url.scheme != 'http' && url.scheme != 'https')) {
+      Get.snackbar('Error', 'Link Google Maps tidak valid');
+      return;
+    }
+
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        Get.snackbar('Error', 'Link Google Maps tidak valid');
       }
     } catch (_) {
       Get.snackbar('Error', 'Tidak bisa membuka Google Maps.');

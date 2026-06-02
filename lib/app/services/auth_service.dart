@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../routes/app_pages.dart';
+import '../widgets/theme_constants.dart';
 
 class AuthService extends GetxService {
   static AuthService get to => Get.find();
@@ -97,17 +99,59 @@ class AuthService extends GetxService {
   String? get userAvatarUrl =>
       currentUser.value?.userMetadata?['avatar_url'] as String?;
 
-  /// Tampilkan dialog/snackbar lalu redirect ke login
-  /// Digunakan saat user belum login tapi mencoba aksi terproteksi
+  /// Tampilkan dialog pilihan saat guest mencoba aksi terproteksi.
   void requireLogin({String? message}) {
-    Get.snackbar(
-      'Login Diperlukan',
-      message ?? 'Silakan login terlebih dahulu untuk melanjutkan.',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
+    if (Get.isDialogOpen == true) return;
+
+    Get.dialog<void>(
+      AlertDialog(
+        backgroundColor: AppColors.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Login Diperlukan',
+          style: TextStyle(
+            color: AppColors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message ?? 'Silakan login terlebih dahulu untuk melanjutkan.',
+          style: const TextStyle(
+            color: AppColors.white70,
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: Get.back,
+            child: const Text(
+              'Tetap sebagai guest',
+              style: TextStyle(color: AppColors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              Get.toNamed(Routes.LOGIN);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: AppColors.bgColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Login',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: true,
     );
-    Future.delayed(const Duration(seconds: 1), () {
-      Get.toNamed(Routes.LOGIN);
-    });
   }
 }

@@ -32,7 +32,7 @@ class HistoryView extends GetView<HistoryController> {
                 }
 
                 // ── Kosong ───────────────────────────────────
-                if (controller.historyItems.isEmpty) {
+                if (controller.visibleHistoryItems.isEmpty) {
                   return const _EmptyState();
                 }
 
@@ -120,7 +120,7 @@ class _HistoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Buat list widget yang berisi group header + card per kelompok tanggal
-    final grouped = _groupByDate(controller.historyItems);
+    final grouped = _groupByDate(controller.visibleHistoryItems);
     final List<Widget> widgets = [];
 
     for (final entry in grouped.entries) {

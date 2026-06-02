@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../widgets/theme_constants.dart';
 import '../../../widgets/custom_navbar.dart';
 import '../../../widgets/navigation_controller.dart';
+import '../../../widgets/shimmer_skeleton.dart';
 import '../controllers/home_controller.dart';
 import '../../../routes/app_pages.dart';
 import '../../../services/restaurant_service.dart';
@@ -189,10 +190,7 @@ class _CitiesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.isLoadingCities.value) {
-        return const SizedBox(
-          height: 160,
-          child: Center(child: CircularProgressIndicator()),
-        );
+        return const _CitySkeletonList();
       }
 
       if (controller.errorCities.value != null) {
@@ -206,7 +204,10 @@ class _CitiesSection extends StatelessWidget {
         return const SizedBox(
           height: 160,
           child: Center(
-            child: Text('Belum ada kota.', style: TextStyle(color: Colors.white54)),
+            child: Text(
+              'Belum ada kota.',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
         );
       }
@@ -239,10 +240,7 @@ class _RecentWisataSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.isLoadingWisata.value) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        );
+        return const _RecentWisataSkeletonList();
       }
 
       if (controller.recentWisata.isEmpty) {
@@ -251,13 +249,15 @@ class _RecentWisataSection extends StatelessWidget {
 
       return Column(
         children: controller.recentWisata
-            .map((w) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _RecentWisataCard(
-                    wisata: w,
-                    onTap: () => controller.goToDetailWisata(w),
-                  ),
-                ))
+            .map(
+              (w) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _RecentWisataCard(
+                  wisata: w,
+                  onTap: () => controller.goToDetailWisata(w),
+                ),
+              ),
+            )
             .toList(),
       );
     });
@@ -276,10 +276,7 @@ class _PopularWisataSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.isLoadingWisata.value) {
-        return const SizedBox(
-          height: 260,
-          child: Center(child: CircularProgressIndicator()),
-        );
+        return const _PopularWisataSkeletonList();
       }
 
       if (controller.errorWisata.value != null) {
@@ -332,10 +329,7 @@ class _TopRestaurantsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       if (controller.isLoadingRestoran.value) {
-        return const Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: CircularProgressIndicator()),
-        );
+        return const _RestaurantSkeletonList();
       }
 
       if (controller.errorRestoran.value != null) {
@@ -359,13 +353,15 @@ class _TopRestaurantsSection extends StatelessWidget {
 
       return Column(
         children: controller.topRestaurants
-            .map((r) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _RestaurantCard(
-                    resto: r,
-                    onTap: () => controller.goToDetailRestoran(r),
-                  ),
-                ))
+            .map(
+              (r) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _RestaurantCard(
+                  resto: r,
+                  onTap: () => controller.goToDetailRestoran(r),
+                ),
+              ),
+            )
             .toList(),
       );
     });
@@ -451,9 +447,9 @@ class _CityCard extends StatelessWidget {
   }
 
   Widget _cityFallback() => Container(
-        color: AppColors.cardColor,
-        child: const Icon(Icons.location_city, color: Colors.white54, size: 40),
-      );
+    color: AppColors.cardColor,
+    child: const Icon(Icons.location_city, color: Colors.white54, size: 40),
+  );
 }
 
 class _RecentWisataCard extends StatelessWidget {
@@ -478,8 +474,11 @@ class _RecentWisataCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               wisata.imageUrl.isNotEmpty
-                  ? Image.network(wisata.imageUrl, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _wisataFallback())
+                  ? Image.network(
+                      wisata.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _wisataFallback(),
+                    )
                   : _wisataFallback(),
               Container(
                 decoration: BoxDecoration(
@@ -518,29 +517,39 @@ class _RecentWisataCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.location_on,
-                            color: AppColors.primaryColor, size: 14),
+                        const Icon(
+                          Icons.location_on,
+                          color: AppColors.primaryColor,
+                          size: 14,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             wisata.location,
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 12),
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 3),
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.ratingColor,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.star,
-                                  color: Colors.white, size: 12),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.white,
+                                size: 12,
+                              ),
                               const SizedBox(width: 3),
                               Text(
                                 wisata.rating.toStringAsFixed(1),
@@ -566,10 +575,9 @@ class _RecentWisataCard extends StatelessWidget {
   }
 
   Widget _wisataFallback() => Container(
-        color: AppColors.cardColor,
-        child:
-            const Icon(Icons.landscape, color: Colors.white54, size: 48),
-      );
+    color: AppColors.cardColor,
+    child: const Icon(Icons.landscape, color: Colors.white54, size: 48),
+  );
 }
 
 class _PopularWisataCard extends StatelessWidget {
@@ -599,24 +607,31 @@ class _PopularWisataCard extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: wisata.imageUrl.isNotEmpty
-                        ? Image.network(wisata.imageUrl,
+                        ? Image.network(
+                            wisata.imageUrl,
                             fit: BoxFit.cover,
                             width: double.infinity,
                             errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.landscape,
-                                  color: Colors.white54,
-                                  size: 48,
-                                ))
-                        : const Icon(Icons.landscape,
-                            color: Colors.white54, size: 48),
+                              Icons.landscape,
+                              color: Colors.white54,
+                              size: 48,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.landscape,
+                            color: Colors.white54,
+                            size: 48,
+                          ),
                   ),
                 ),
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryColor,
                       borderRadius: BorderRadius.circular(6),
@@ -647,14 +662,19 @@ class _PopularWisataCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.location_on,
-                    color: AppColors.primaryColor, size: 12),
+                const Icon(
+                  Icons.location_on,
+                  color: AppColors.primaryColor,
+                  size: 12,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     wisata.location,
                     style: TextStyle(
-                        color: Colors.white.withOpacity(0.6), fontSize: 12),
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -665,8 +685,10 @@ class _PopularWisataCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.ratingColor,
                     borderRadius: BorderRadius.circular(6),
@@ -690,7 +712,9 @@ class _PopularWisataCard extends StatelessWidget {
                 Text(
                   '${wisata.totalReviews} ulasan',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.5), fontSize: 11),
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -708,8 +732,7 @@ class _RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image =
-        resto.images.isNotEmpty ? resto.images.first : '';
+    final image = resto.images.isNotEmpty ? resto.images.first : '';
 
     return InkWell(
       onTap: onTap,
@@ -728,17 +751,23 @@ class _RestaurantCard extends StatelessWidget {
                 width: 80,
                 height: 80,
                 child: image.isNotEmpty
-                    ? Image.network(image,
+                    ? Image.network(
+                        image,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                              color: AppColors.cardColor,
-                              child: const Icon(Icons.restaurant,
-                                  color: Colors.white54),
-                            ))
+                          color: AppColors.cardColor,
+                          child: const Icon(
+                            Icons.restaurant,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      )
                     : Container(
                         color: AppColors.cardColor,
-                        child: const Icon(Icons.restaurant,
-                            color: Colors.white54),
+                        child: const Icon(
+                          Icons.restaurant,
+                          color: Colors.white54,
+                        ),
                       ),
               ),
             ),
@@ -750,9 +779,10 @@ class _RestaurantCard extends StatelessWidget {
                   Text(
                     resto.name,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -761,22 +791,28 @@ class _RestaurantCard extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.ratingColor,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.star,
-                                color: Colors.white, size: 10),
+                            const Icon(
+                              Icons.star,
+                              color: Colors.white,
+                              size: 10,
+                            ),
                             const SizedBox(width: 2),
                             Text(
                               resto.rating.toStringAsFixed(1),
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -785,32 +821,41 @@ class _RestaurantCard extends StatelessWidget {
                       Text(
                         resto.cuisine,
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12),
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on,
-                          color: AppColors.primaryColor, size: 12),
+                      const Icon(
+                        Icons.location_on,
+                        color: AppColors.primaryColor,
+                        size: 12,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         resto.distance,
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12),
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      const Icon(Icons.attach_money,
-                          color: AppColors.primaryColor, size: 12),
+                      const Icon(
+                        Icons.attach_money,
+                        color: AppColors.primaryColor,
+                        size: 12,
+                      ),
                       const SizedBox(width: 2),
                       Text(
                         resto.priceRange,
                         style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12),
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -865,11 +910,149 @@ class _ErrorRetry extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
-          Text(message,
-              style: const TextStyle(color: Colors.red),
-              textAlign: TextAlign.center),
+          Text(
+            message,
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
           TextButton(onPressed: onRetry, child: const Text('Coba lagi')),
+        ],
+      ),
+    );
+  }
+}
+
+class _CitySkeletonList extends StatelessWidget {
+  const _CitySkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 160,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        itemBuilder: (_, _) => const ShimmerBox(
+          width: 150,
+          height: 160,
+          borderRadius: 12,
+          margin: EdgeInsets.only(right: 10),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentWisataSkeletonList extends StatelessWidget {
+  const _RecentWisataSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        ShimmerBox(
+          height: 180,
+          borderRadius: 14,
+          margin: EdgeInsets.only(bottom: 12),
+        ),
+        ShimmerBox(
+          height: 180,
+          borderRadius: 14,
+          margin: EdgeInsets.only(bottom: 12),
+        ),
+      ],
+    );
+  }
+}
+
+class _PopularWisataSkeletonList extends StatelessWidget {
+  const _PopularWisataSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 260,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        itemBuilder: (_, _) => const _PopularWisataSkeletonCard(),
+      ),
+    );
+  }
+}
+
+class _PopularWisataSkeletonCard extends StatelessWidget {
+  const _PopularWisataSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 190,
+      child: Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShimmerBox(height: 180, borderRadius: 16),
+            SizedBox(height: 8),
+            ShimmerBox(width: 150, height: 16, borderRadius: 6),
+            SizedBox(height: 8),
+            ShimmerBox(width: 120, height: 12, borderRadius: 6),
+            SizedBox(height: 8),
+            ShimmerBox(width: 92, height: 18, borderRadius: 6),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RestaurantSkeletonList extends StatelessWidget {
+  const _RestaurantSkeletonList();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        _RestaurantSkeletonCard(),
+        _RestaurantSkeletonCard(),
+        _RestaurantSkeletonCard(),
+      ],
+    );
+  }
+}
+
+class _RestaurantSkeletonCard extends StatelessWidget {
+  const _RestaurantSkeletonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          ShimmerBox(width: 80, height: 80, borderRadius: 10),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerBox(width: double.infinity, height: 16, borderRadius: 6),
+                SizedBox(height: 10),
+                ShimmerBox(width: 130, height: 14, borderRadius: 6),
+                SizedBox(height: 10),
+                ShimmerBox(width: 170, height: 12, borderRadius: 6),
+              ],
+            ),
+          ),
         ],
       ),
     );

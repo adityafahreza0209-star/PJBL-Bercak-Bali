@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/review_service.dart';
 import '../../../widgets/theme_constants.dart';
@@ -162,15 +163,28 @@ class WriteReviewController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
+      final message = _isDuplicateReviewError(e)
+          ? 'Anda hanya dapat memberikan 1 ulasan per ${placeType == 'restoran' ? 'restoran' : 'wisata'}.'
+          : 'Terjadi kesalahan. Silakan coba lagi.';
+
       Get.snackbar(
         'Gagal',
-        'Terjadi kesalahan. Silakan coba lagi.',
+        message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     } finally {
       isSubmitting.value = false;
     }
+  }
+
+  bool _isDuplicateReviewError(Object error) {
+    if (error is PostgrestException && error.code == '23505') {
+      return true;
+    }
+
+    final errorText = error.toString().toLowerCase();
+    return errorText.contains('duplicate') || errorText.contains('unique');
   }
 
   void goBack() => Get.back();

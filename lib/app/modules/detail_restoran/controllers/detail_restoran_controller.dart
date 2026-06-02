@@ -13,18 +13,18 @@ class DetailRestoranController extends GetxController {
   // ── Data restoran (diisi setelah fetch) ───────────────────────
   RestaurantModel? _restoran;
 
-  String get name        => _restoran?.name        ?? '';
-  String get location    => _restoran?.location    ?? '';
-  String get cuisine     => _restoran?.cuisine     ?? '';
+  String get name => _restoran?.name ?? '';
+  String get location => _restoran?.location ?? '';
+  String get cuisine => _restoran?.cuisine ?? '';
   String get description => _restoran?.description ?? '';
-  String get priceRange  => _restoran?.priceRange  ?? '';
-  String get distance    => _restoran?.distance    ?? '';
+  String get priceRange => _restoran?.priceRange ?? '';
+  String get distance => _restoran?.distance ?? '';
   String get phoneNumber => _restoran?.phoneNumber ?? '';
-  String get rating      => _restoran?.rating.toStringAsFixed(1) ?? '0.0';
-  int    get totalUlasan => _restoran?.totalReviews ?? 0;
-  double get latitude    => _restoran?.latitude    ?? 0.0;
-  double get longitude   => _restoran?.longitude   ?? 0.0;
-  List<String> get images => _restoran?.images     ?? [];
+  String get rating => _restoran?.rating.toStringAsFixed(1) ?? '0.0';
+  int get totalUlasan => _restoran?.totalReviews ?? 0;
+  String? get googleMapsUrl => _restoran?.googleMapsUrl;
+  bool get hasGoogleMapsUrl => googleMapsUrl?.isNotEmpty == true;
+  List<String> get images => _restoran?.images ?? [];
 
   // ── State carousel gambar ─────────────────────────────────────
   final currentImage = 0.obs;
@@ -36,17 +36,29 @@ class DetailRestoranController extends GetxController {
   final reviews = <ReviewModel>[].obs;
   final isLoadingReviews = false.obs;
 
+  Map<int, int> get ratingCounts {
+    final counts = {for (var star = 1; star <= 5; star++) star: 0};
+    for (final review in reviews) {
+      if (counts.containsKey(review.rating)) {
+        counts[review.rating] = counts[review.rating]! + 1;
+      }
+    }
+    return counts;
+  }
+
+  int get actualReviewCount => reviews.length;
+
   // ── State tombol "Berguna" per review (key = review_id) ───────
   final usefulCounts = <String, int>{}.obs;
-  final userUseful   = <String, bool>{}.obs;
+  final userUseful = <String, bool>{}.obs;
 
   // ── State menu ────────────────────────────────────────────────
-  final menuItems    = <MenuItemModel>[].obs;
+  final menuItems = <MenuItemModel>[].obs;
   final isLoadingMenu = false.obs;
 
   final _restaurantService = RestaurantService();
-  final _reviewService     = ReviewService();
-  String _restaurantId     = '';
+  final _reviewService = ReviewService();
+  String _restaurantId = '';
 
   // ── Getter menu per kategori ──────────────────────────────────
   List<MenuItemModel> get menuMakanan =>
@@ -72,11 +84,7 @@ class DetailRestoranController extends GetxController {
   // ── FETCH ─────────────────────────────────────────────────────
 
   Future<void> _fetchAll() async {
-    await Future.wait([
-      _fetchRestoranDetail(),
-      _fetchReviews(),
-      _fetchMenus(),
-    ]);
+    await Future.wait([_fetchRestoranDetail(), _fetchReviews(), _fetchMenus()]);
   }
 
   Future<void> _fetchRestoranDetail() async {
@@ -121,7 +129,7 @@ class DetailRestoranController extends GetxController {
       // Inisialisasi state berguna dari data Supabase
       for (final r in data) {
         usefulCounts[r.id] = r.usefulCount;
-        userUseful[r.id]   = false;
+        userUseful[r.id] = false;
       }
 
       // Tandai review yang sudah di-vote user ini
@@ -162,11 +170,12 @@ class DetailRestoranController extends GetxController {
   Future<void> toggleFavorite() async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menyimpan restoran.');
+        message: 'Login terlebih dahulu untuk menyimpan restoran.',
+      );
       return;
     }
 
-    final userId      = AuthService.to.userId;
+    final userId = AuthService.to.userId;
     final nowFavorite = isFavorite.value;
 
     isFavorite.value = !nowFavorite; // optimistic update
@@ -174,10 +183,14 @@ class DetailRestoranController extends GetxController {
     try {
       if (nowFavorite) {
         await _restaurantService.unsavePlace(
-            restaurantId: _restaurantId, userId: userId);
+          restaurantId: _restaurantId,
+          userId: userId,
+        );
       } else {
         await _restaurantService.savePlace(
-            restaurantId: _restaurantId, userId: userId);
+          restaurantId: _restaurantId,
+          userId: userId,
+        );
       }
     } catch (_) {
       isFavorite.value = nowFavorite; // rollback
@@ -188,18 +201,18 @@ class DetailRestoranController extends GetxController {
   Future<void> toggleUseful(String reviewId) async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menandai ulasan berguna.');
+        message: 'Login terlebih dahulu untuk menandai ulasan berguna.',
+      );
       return;
     }
 
-    final userId       = AuthService.to.userId;
-    final alreadyVoted = userUseful[reviewId]  ?? false;
+    final userId = AuthService.to.userId;
+    final alreadyVoted = userUseful[reviewId] ?? false;
     final currentCount = usefulCounts[reviewId] ?? 0;
 
     // Optimistic update
-    userUseful[reviewId]   = !alreadyVoted;
-    usefulCounts[reviewId] =
-        alreadyVoted ? currentCount - 1 : currentCount + 1;
+    userUseful[reviewId] = !alreadyVoted;
+    usefulCounts[reviewId] = alreadyVoted ? currentCount - 1 : currentCount + 1;
 
     try {
       if (alreadyVoted) {
@@ -209,7 +222,7 @@ class DetailRestoranController extends GetxController {
       }
     } catch (_) {
       // Rollback
-      userUseful[reviewId]   = alreadyVoted;
+      userUseful[reviewId] = alreadyVoted;
       usefulCounts[reviewId] = currentCount;
       Get.snackbar('Gagal', 'Tidak bisa memproses vote. Coba lagi.');
     }
@@ -218,7 +231,8 @@ class DetailRestoranController extends GetxController {
   Future<void> goToWriteReview() async {
     if (!AuthService.to.isLoggedIn.value) {
       AuthService.to.requireLogin(
-          message: 'Login terlebih dahulu untuk menulis ulasan.');
+        message: 'Login terlebih dahulu untuk menulis ulasan.',
+      );
       return;
     }
 
@@ -227,8 +241,8 @@ class DetailRestoranController extends GetxController {
       Routes.WRITE_REVIEW,
       arguments: {
         'restaurantId': _restaurantId,
-        'placeName':    name,
-        'placeType':    'restoran',
+        'placeName': name,
+        'placeType': 'restoran',
       },
     );
 
@@ -240,19 +254,27 @@ class DetailRestoranController extends GetxController {
   void onPageChanged(int index) => currentImage.value = index;
 
   Future<void> openGoogleMaps() async {
-    final lat = latitude;
-    final lng = longitude;
+    final link = googleMapsUrl;
 
-    if (lat == 0.0 && lng == 0.0) {
-      Get.snackbar('Info', 'Koordinat lokasi belum tersedia.');
+    if (link == null || link.trim().isEmpty) {
+      Get.snackbar('Info', 'Link lokasi belum tersedia');
       return;
     }
 
-    final url = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final url = Uri.tryParse(link.trim());
+    if (url == null ||
+        !url.isAbsolute ||
+        url.host.isEmpty ||
+        (url.scheme != 'http' && url.scheme != 'https')) {
+      Get.snackbar('Error', 'Link Google Maps tidak valid');
+      return;
+    }
+
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        Get.snackbar('Error', 'Link Google Maps tidak valid');
       }
     } catch (_) {
       Get.snackbar('Error', 'Tidak bisa membuka Google Maps.');
